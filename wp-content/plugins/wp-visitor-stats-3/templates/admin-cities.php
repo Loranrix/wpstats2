@@ -31,9 +31,11 @@ $periods = array(
                 <select name="country">
                     <option value=""><?php _e('All Countries', 'wp-visitor-stats'); ?></option>
                     <?php
-                    global $wpdb;
-                    $countries_list = $wpdb->get_results("SELECT DISTINCT country_code, country_name FROM {$wpdb->prefix}visitor_stats_locations WHERE country_code IS NOT NULL ORDER BY country_name");
-                    foreach ($countries_list as $c):
+                    try {
+                        global $wpdb;
+                        $countries_list = $wpdb->get_results("SELECT DISTINCT country_code, country_name FROM {$wpdb->prefix}visitor_stats_locations WHERE country_code IS NOT NULL AND country_code != '' ORDER BY country_name");
+                        if (is_array($countries_list)) {
+                            foreach ($countries_list as $c):
                     ?>
                         <option value="<?php echo esc_attr($c->country_code); ?>" <?php selected($country_code, $c->country_code); ?>>
                             <?php echo esc_html($c->country_name); ?>
@@ -60,7 +62,16 @@ $periods = array(
             if (empty($cities) || !is_array($cities)) {
                 echo '<tr><td colspan="5" style="text-align: center; padding: 20px;">' . __('No data available', 'wp-visitor-stats') . '</td></tr>';
             } else {
-                $total_visitors = array_sum(array_column($cities, 'unique_visitors'));
+                $total_visitors = 0;
+                $total_visits = 0;
+                foreach ($cities as $city) {
+                    if (isset($city->unique_visitors)) {
+                        $total_visitors += (int) $city->unique_visitors;
+                    }
+                    if (isset($city->total_visits)) {
+                        $total_visits += (int) $city->total_visits;
+                    }
+                }
                 foreach ($cities as $city): 
             ?>
             <tr>
@@ -75,29 +86,29 @@ $periods = array(
                     ?>
                 </td>
                 <td>
-                    <strong><?php echo esc_html($city->city); ?></strong>
+                    <strong><?php echo esc_html(isset($city->city) ? $city->city : ''); ?></strong>
                     <?php if (!empty($city->region)): ?>
                         <br><small style="color: #666;"><?php echo esc_html($city->region); ?></small>
                     <?php endif; ?>
                 </td>
                 <td>
-                    <?php echo esc_html($city->country_name); ?>
+                    <?php echo esc_html(isset($city->country_name) ? $city->country_name : ''); ?>
                 </td>
                 <td style="text-align: right;">
-                    <strong><?php echo number_format($city->unique_visitors); ?></strong>
+                    <strong><?php echo number_format(isset($city->unique_visitors) ? (int) $city->unique_visitors : 0); ?></strong>
                 </td>
                 <td style="text-align: right;">
-                    <?php echo number_format($city->total_visits); ?>
+                    <?php echo number_format(isset($city->total_visits) ? (int) $city->total_visits : 0); ?>
                 </td>
             </tr>
             <?php endforeach; ?>
         </tbody>
-        <?php if (!empty($cities)): ?>
+        <?php if (!empty($cities) && is_array($cities)): ?>
         <tfoot>
             <tr>
                 <th colspan="3"><?php _e('Total', 'wp-visitor-stats'); ?></th>
                 <th style="text-align: right;"><?php echo number_format($total_visitors); ?></th>
-                <th style="text-align: right;"><?php echo number_format(array_sum(array_column($cities, 'total_visits'))); ?></th>
+                <th style="text-align: right;"><?php echo number_format($total_visits); ?></th>
             </tr>
         </tfoot>
         <?php endif; ?>

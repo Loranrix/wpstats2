@@ -164,7 +164,12 @@ class WP_Visitor_Stats_Admin {
             
             $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
             $country_code = isset($_GET['country']) ? sanitize_text_field($_GET['country']) : '';
+            
+            // Ensure cities is always an array
             $cities = $geolocation->get_visitors_by_city($period, $country_code);
+            if (!is_array($cities)) {
+                $cities = array();
+            }
             
             $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-cities.php';
             if (file_exists($template_file)) {
@@ -177,6 +182,10 @@ class WP_Visitor_Stats_Admin {
             echo '<div class="wrap"><h1>' . __('By City', 'wp-visitor-stats') . '</h1>';
             echo '<div class="notice notice-error"><p>' . __('Error: ', 'wp-visitor-stats') . esc_html($e->getMessage()) . '</p></div></div>';
             error_log('WP Visitor Stats - Error in render_cities_page: ' . $e->getMessage());
+        } catch (Error $e) {
+            echo '<div class="wrap"><h1>' . __('By City', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Fatal Error: ', 'wp-visitor-stats') . esc_html($e->getMessage()) . '</p></div></div>';
+            error_log('WP Visitor Stats - Fatal Error in render_cities_page: ' . $e->getMessage());
         }
     }
     
