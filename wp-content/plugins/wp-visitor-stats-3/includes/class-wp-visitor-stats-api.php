@@ -40,11 +40,78 @@ class WP_Visitor_Stats_API {
                 // Set cookie for 1 year
                 setcookie('wp_visitor_stats_token', $token, time() + (365 * 24 * 60 * 60), '/', '', is_ssl(), true);
                 
-                // Redirect to remove token from URL
-                wp_redirect(remove_query_arg('wp_visitor_stats_token'));
+                // Show confirmation page
+                $this->show_cookie_confirmation();
                 exit;
             }
         }
+    }
+    
+    /**
+     * Show cookie confirmation page
+     */
+    private function show_cookie_confirmation() {
+        // Prevent WordPress from loading the theme
+        status_header(200);
+        nocache_headers();
+        
+        ?>
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title><?php _e('Cookie Access Confirmed', 'wp-visitor-stats'); ?></title>
+            <style>
+                body {
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    min-height: 100vh;
+                    margin: 0;
+                    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                }
+                .confirmation-box {
+                    background: white;
+                    padding: 40px;
+                    border-radius: 10px;
+                    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+                    text-align: center;
+                    max-width: 400px;
+                }
+                .ok-icon {
+                    font-size: 80px;
+                    color: #46b450;
+                    margin-bottom: 20px;
+                }
+                h1 {
+                    color: #333;
+                    margin: 0 0 10px 0;
+                    font-size: 28px;
+                }
+                p {
+                    color: #666;
+                    margin: 10px 0;
+                    font-size: 16px;
+                }
+                .success {
+                    color: #46b450;
+                    font-weight: bold;
+                    font-size: 24px;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="confirmation-box">
+                <div class="ok-icon">✓</div>
+                <h1><?php _e('OK', 'wp-visitor-stats'); ?></h1>
+                <p class="success"><?php _e('Cookie Access Activated!', 'wp-visitor-stats'); ?></p>
+                <p><?php _e('You can now see visitor statistics on the website.', 'wp-visitor-stats'); ?></p>
+            </div>
+        </body>
+        </html>
+        <?php
     }
     
     /**
