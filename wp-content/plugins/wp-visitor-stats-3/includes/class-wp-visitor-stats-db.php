@@ -9,22 +9,33 @@ if (!defined('ABSPATH')) {
 
 class WP_Visitor_Stats_DB {
     
-    private $table_visits;
-    private $table_online;
-    private $table_locations;
+    public $table_visits;
+    public $table_online;
+    public $table_locations;
     
     public function __construct() {
         global $wpdb;
         $this->table_visits = $wpdb->prefix . 'visitor_stats_visits';
         $this->table_online = $wpdb->prefix . 'visitor_stats_online';
         $this->table_locations = $wpdb->prefix . 'visitor_stats_locations';
+        
+        // Ensure tables exist
+        $this->create_tables();
     }
     
     /**
      * Create database tables
      */
     public function create_tables() {
+        // Check if tables already exist to avoid unnecessary operations
         global $wpdb;
+        $visits_exists = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_visits}'");
+        $online_exists = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_online}'");
+        $locations_exists = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_locations}'");
+        
+        if ($visits_exists && $online_exists && $locations_exists) {
+            return; // Tables already exist
+        }
         
         $charset_collate = $wpdb->get_charset_collate();
         
@@ -80,7 +91,16 @@ class WP_Visitor_Stats_DB {
         dbDelta($sql_locations);
         
         // Set version
-        update_option('wp_visitor_stats_db_version', '1.0.0');
+        update_option('wp_visitor_stats_db_version', '1.0.2');
+        
+        // Verify tables were created
+        $visits_created = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_visits}'");
+        $online_created = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_online}'");
+        $locations_created = $wpdb->get_var("SHOW TABLES LIKE '{$this->table_locations}'");
+        
+        if (!$visits_created || !$online_created || !$locations_created) {
+            error_log('WP Visitor Stats - Failed to create some tables');
+        }
     }
     
     /**
