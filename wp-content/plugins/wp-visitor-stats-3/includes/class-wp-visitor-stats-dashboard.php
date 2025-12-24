@@ -226,9 +226,14 @@ class WP_Visitor_Stats_Dashboard {
                 <?php endif; ?>
                 
                 <p style="margin-top: 15px; text-align: center;">
-                    <a href="<?php echo admin_url('admin.php?page=wp-visitor-stats'); ?>" class="button button-primary">
+                    <a href="<?php echo esc_url(admin_url('admin.php?page=wp-visitor-stats')); ?>" class="button button-primary">
                         <?php _e('View Full Statistics', 'wp-visitor-stats'); ?>
                     </a>
+                    <br>
+                    <small style="margin-top: 5px; display: inline-block;">
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=wp-visitor-stats-countries')); ?>"><?php _e('By Country', 'wp-visitor-stats'); ?></a> | 
+                        <a href="<?php echo esc_url(admin_url('admin.php?page=wp-visitor-stats-cities')); ?>"><?php _e('By City', 'wp-visitor-stats'); ?></a>
+                    </small>
                 </p>
             </div>
             

@@ -31,6 +31,7 @@ class WP_Visitor_Stats_Admin {
      * Add admin menu
      */
     public function add_admin_menu() {
+        // Main menu page - this will be the default page when clicking the menu
         add_menu_page(
             __('Visitor Stats', 'wp-visitor-stats'),
             __('Visitor Stats', 'wp-visitor-stats'),
@@ -41,12 +42,23 @@ class WP_Visitor_Stats_Admin {
             30
         );
         
+        // First submenu with same slug as main menu - this ensures the main menu shows the stats page
+        add_submenu_page(
+            'wp-visitor-stats',
+            __('Statistics', 'wp-visitor-stats'),
+            __('Statistics', 'wp-visitor-stats'),
+            'manage_options',
+            'wp-visitor-stats',
+            array($this, 'render_admin_page')
+        );
+        
+        // Settings submenu (separate page)
         add_submenu_page(
             'wp-visitor-stats',
             __('Settings', 'wp-visitor-stats'),
             __('Settings', 'wp-visitor-stats'),
             'manage_options',
-            'wp-visitor-stats',
+            'wp-visitor-stats-settings',
             array($this, 'render_admin_page')
         );
         
@@ -120,22 +132,58 @@ class WP_Visitor_Stats_Admin {
      * Render admin page
      */
     public function render_admin_page() {
-        if (isset($_POST['wp_visitor_stats_save'])) {
-            check_admin_referer('wp_visitor_stats_settings');
-            $this->save_settings();
-        }
+        // Check if we're on the settings page or main stats page
+        $current_page = isset($_GET['page']) ? $_GET['page'] : '';
         
-        if (isset($_POST['wp_visitor_stats_add_ip'])) {
-            check_admin_referer('wp_visitor_stats_settings');
-            $this->add_authorized_ip();
+        if ($current_page === 'wp-visitor-stats-settings') {
+            // Render settings page
+            if (isset($_POST['wp_visitor_stats_save'])) {
+                check_admin_referer('wp_visitor_stats_settings');
+                $this->save_settings();
+            }
+            
+            if (isset($_POST['wp_visitor_stats_add_ip'])) {
+                check_admin_referer('wp_visitor_stats_settings');
+                $this->add_authorized_ip();
+            }
+            
+            if (isset($_POST['wp_visitor_stats_remove_ip'])) {
+                check_admin_referer('wp_visitor_stats_settings');
+                $this->remove_authorized_ip();
+            }
+            
+            include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-page.php';
+        } else {
+            // Render main statistics page
+            $this->render_statistics_page();
         }
-        
-        if (isset($_POST['wp_visitor_stats_remove_ip'])) {
-            check_admin_referer('wp_visitor_stats_settings');
-            $this->remove_authorized_ip();
+    }
+    
+    /**
+     * Render main statistics page
+     */
+    private function render_statistics_page() {
+        try {
+            $stats = array(
+                'today' => (int) $this->db->get_unique_visitor_count('today'),
+                'week' => (int) $this->db->get_unique_visitor_count('week'),
+                'month' => (int) $this->db->get_unique_visitor_count('month'),
+                'year' => (int) $this->db->get_unique_visitor_count('year'),
+                'all' => (int) $this->db->get_unique_visitor_count('all'),
+                'online' => (int) $this->db->get_online_count()
+            );
+            
+            require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+            $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+            $top_countries = $geolocation->get_visitors_by_country('all');
+            $top_cities = $geolocation->get_visitors_by_city('all');
+            
+            include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-statistics.php';
+        } catch (Exception $e) {
+            echo '<div class="wrap"><h1>' . __('Visitor Statistics', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Error loading statistics: ', 'wp-visitor-stats') . esc_html($e->getMessage()) . '</p></div></div>';
+            error_log('WP Visitor Stats - Error in render_statistics_page: ' . $e->getMessage());
         }
-        
-        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-page.php';
     }
     
     /**
