@@ -3,7 +3,7 @@
  * Plugin Name: WP Visitor Stats
  * Plugin URI: https://loranrix.com
  * Description: Beautiful visitor statistics display for WordPress. Shows daily, weekly, monthly, yearly visitors and real-time online users. Configurable display position, colors, and formats.
- * Version: 1.0.0
+ * Version: 1.0.1
  * Author: LoranRix
  * Author URI: https://loranrix.com
  * License: GPL v2 or later
@@ -13,6 +13,7 @@
  * Requires at least: 5.0
  * Tested up to: 6.9
  * Requires PHP: 7.4
+ * Update URI: https://loranrix.com/wp-visitor-stats
  */
 
 // Exit if accessed directly
@@ -21,7 +22,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WP_VISITOR_STATS_VERSION', '1.0.0');
+define('WP_VISITOR_STATS_VERSION', '1.0.1');
 define('WP_VISITOR_STATS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WP_VISITOR_STATS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WP_VISITOR_STATS_PLUGIN_FILE', __FILE__);
@@ -85,6 +86,9 @@ class WP_Visitor_Stats {
         
         // Initialize Geolocation
         $this->geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        
+        // Initialize Maintenance (must be initialized here)
+        $this->maintenance = new WP_Visitor_Stats_Maintenance();
         
         // Initialize WhatsApp Alerts
         require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-whatsapp.php';

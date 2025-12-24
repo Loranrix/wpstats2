@@ -36,7 +36,11 @@ class WP_Visitor_Stats_Dashboard {
         wp_add_dashboard_widget(
             'wp_visitor_stats_dashboard',
             __('Visitor Statistics', 'wp-visitor-stats'),
-            array($this, 'render_dashboard_widget')
+            array($this, 'render_dashboard_widget'),
+            null,
+            null,
+            'normal',
+            'high'
         );
     }
     

@@ -21,13 +21,14 @@ class WP_Visitor_Stats_Display {
      */
     private function init() {
         $enabled = get_option('wp_visitor_stats_enabled', true);
+        $track_all = get_option('wp_visitor_stats_track_all', false);
         
         if (!$enabled) {
             return;
         }
         
-        // Check if user can see stats
-        if (!$this->db->can_see_stats()) {
+        // Check if user can see stats (only if track_all is disabled)
+        if (!$track_all && !$this->db->can_see_stats()) {
             return;
         }
         

@@ -166,7 +166,7 @@ class WP_Visitor_Stats_Geolocation {
             $prepared = $query;
         }
         
-        return $wpdb->get_results($query);
+        return $wpdb->get_results($prepared);
     }
     
     /**
