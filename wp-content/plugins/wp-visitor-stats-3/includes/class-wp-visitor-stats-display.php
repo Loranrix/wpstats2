@@ -39,10 +39,14 @@ class WP_Visitor_Stats_Display {
             case 'header_left':
                 add_action('wp_head', array($this, 'output_css'), 1);
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_left'), 10, 2);
+                // Fallback if menu filter doesn't work
+                add_action('wp_body_open', array($this, 'output_stats_center'), 5);
                 break;
             case 'header_right':
                 add_action('wp_head', array($this, 'output_css'), 1);
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_right'), 10, 2);
+                // Fallback if menu filter doesn't work
+                add_action('wp_body_open', array($this, 'output_stats_center'), 5);
                 break;
             case 'header_center':
                 add_action('wp_head', array($this, 'output_css'), 1);
@@ -55,6 +59,11 @@ class WP_Visitor_Stats_Display {
             default:
                 add_action('wp_head', array($this, 'output_css'), 1);
                 add_action('wp_footer', array($this, 'output_stats_footer'));
+        }
+        
+        // Always add to footer as backup if other methods fail
+        if ($position !== 'footer') {
+            add_action('wp_footer', array($this, 'output_stats_footer'), 999);
         }
         
         // Enqueue scripts
@@ -157,7 +166,15 @@ class WP_Visitor_Stats_Display {
      * Output stats in footer
      */
     public function output_stats_footer() {
-        echo $this->get_stats_html();
+        static $displayed = false;
+        // Only display once to avoid duplicates
+        if (!$displayed) {
+            $html = $this->get_stats_html();
+            if (!empty($html)) {
+                echo $html;
+                $displayed = true;
+            }
+        }
     }
     
     /**
