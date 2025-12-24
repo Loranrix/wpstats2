@@ -324,7 +324,13 @@ class WP_Visitor_Stats_Admin {
      * Render cache help page
      */
     public function render_cache_help_page() {
-        $help_file = WP_VISITOR_STATS_PLUGIN_DIR . 'CONFIG-LITESPEED.md';
+        // Try new comprehensive cache config file first, fallback to old LiteSpeed file
+        $help_file = WP_VISITOR_STATS_PLUGIN_DIR . 'CACHE-CONFIG.md';
+        
+        if (!file_exists($help_file)) {
+            // Fallback to old file name
+            $help_file = WP_VISITOR_STATS_PLUGIN_DIR . 'CONFIG-LITESPEED.md';
+        }
         
         if (!file_exists($help_file)) {
             echo '<div class="wrap"><h1>' . __('Cache Configuration Help', 'wp-visitor-stats') . '</h1>';
