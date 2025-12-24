@@ -190,7 +190,7 @@ $current_count = $this->db->get_unique_visitor_count($period);
                 <li><?php _e('Make sure you added the correct number: +34 623 78 95 80', 'wp-visitor-stats'); ?></li>
                 <li><?php _e('Send the message exactly as shown: "I allow callmebot to send me messages" (case-sensitive)', 'wp-visitor-stats'); ?></li>
                 <li><?php _e('Check your internet connection and WhatsApp connection', 'wp-visitor-stats'); ?></li>
-                <li><?php _e('If CallMeBot doesn\'t respond, you can use a webhook URL instead (see field below)', 'wp-visitor-stats'); ?></li>
+                <li><strong><?php _e('Note: CallMeBot may not respond due to high demand. We recommend using a webhook URL instead (see below).', 'wp-visitor-stats'); ?></strong></li>
             </ul>
         </div>
         
@@ -199,6 +199,66 @@ $current_count = $this->db->get_unique_visitor_count($period);
                 <?php _e('Visit CallMeBot website for more information', 'wp-visitor-stats'); ?>
             </a>
         </p>
+    </div>
+    
+    <div class="wp-visitor-stats-webhook-alternative" style="background: #e8f5e9; padding: 20px; border-left: 4px solid #46b450; margin: 20px 0;">
+        <h3 style="color: #2e7d32; margin-top: 0;"><?php _e('💡 Recommended Alternative: Use Webhook URL', 'wp-visitor-stats'); ?></h3>
+        <p style="font-size: 15px; line-height: 1.6;">
+            <?php _e('If CallMeBot doesn\'t respond, you can use a webhook URL instead. This is often more reliable and doesn\'t require waiting for CallMeBot to respond.', 'wp-visitor-stats'); ?>
+        </p>
+        
+        <div style="background: #fff; padding: 15px; margin-top: 15px; border-radius: 5px; border: 1px solid #4caf50;">
+            <h4 style="margin-top: 0;"><?php _e('Free Webhook Services:', 'wp-visitor-stats'); ?></h4>
+            <ul style="margin-left: 20px; line-height: 2;">
+                <li>
+                    <strong>Make.com (formerly Integromat):</strong> 
+                    <?php _e('Create a free account, set up a WhatsApp webhook, and use the webhook URL provided.', 'wp-visitor-stats'); ?>
+                    <br>
+                    <a href="https://www.make.com" target="_blank">https://www.make.com</a>
+                </li>
+                <li>
+                    <strong>Zapier:</strong> 
+                    <?php _e('Free tier available. Create a webhook trigger and connect it to WhatsApp.', 'wp-visitor-stats'); ?>
+                    <br>
+                    <a href="https://zapier.com" target="_blank">https://zapier.com</a>
+                </li>
+                <li>
+                    <strong>n8n:</strong> 
+                    <?php _e('Open-source automation tool. Self-hosted or cloud version available.', 'wp-visitor-stats'); ?>
+                    <br>
+                    <a href="https://n8n.io" target="_blank">https://n8n.io</a>
+                </li>
+                <li>
+                    <strong>IFTTT:</strong> 
+                    <?php _e('Free webhook service that can forward to WhatsApp.', 'wp-visitor-stats'); ?>
+                    <br>
+                    <a href="https://ifttt.com" target="_blank">https://ifttt.com</a>
+                </li>
+            </ul>
+        </div>
+        
+        <div style="background: #fff3cd; padding: 15px; margin-top: 15px; border-radius: 5px; border: 1px solid #ffc107;">
+            <strong><?php _e('How Webhook Works:', 'wp-visitor-stats'); ?></strong>
+            <ol style="margin-left: 20px; margin-top: 10px; line-height: 2;">
+                <li><?php _e('Sign up for a free webhook service (Make.com, Zapier, etc.)', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Create a webhook that receives POST requests with phone and message fields', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Connect the webhook to WhatsApp (using the service\'s WhatsApp integration)', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Copy the webhook URL and paste it in the "Webhook URL" field above', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('The plugin will send alerts to your webhook, which will forward them to WhatsApp', 'wp-visitor-stats'); ?></li>
+            </ol>
+        </div>
+        
+        <div style="background: #e3f2fd; padding: 15px; margin-top: 15px; border-radius: 5px; border: 1px solid #2196f3;">
+            <strong><?php _e('Webhook Format:', 'wp-visitor-stats'); ?></strong>
+            <p style="margin-top: 10px; font-family: monospace; background: #fff; padding: 10px; border-radius: 3px;">
+                POST <?php echo esc_url(home_url()); ?>/webhook<br>
+                Content-Type: application/json<br><br>
+                {<br>
+                &nbsp;&nbsp;"phone": "+37120123456",<br>
+                &nbsp;&nbsp;"message": "Your alert message here"<br>
+                }
+            </p>
+        </div>
     </div>
 </div>
 
