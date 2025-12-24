@@ -27,6 +27,8 @@
         var hiddenDiv = document.getElementById('wp-visitor-stats-hidden');
         if (hiddenDiv) {
             var savedToken = hiddenDiv.getAttribute('data-token-check');
+            var hasUrlToken = hiddenDiv.getAttribute('data-has-url-token') === '1';
+            
             if (savedToken) {
                 // Check if cookie exists
                 function getCookie(name) {
@@ -42,8 +44,15 @@
                 var urlParams = new URLSearchParams(window.location.search);
                 var tokenParam = urlParams.get('wp_visitor_stats_token');
                 
-                // If token in URL matches, set cookie
-                if (tokenParam === savedToken && cookieValue !== savedToken) {
+                // If token in URL matches saved token, or hasUrlToken is true, set cookie
+                var shouldSetCookie = false;
+                if (hasUrlToken || (tokenParam === savedToken)) {
+                    if (cookieValue !== savedToken) {
+                        shouldSetCookie = true;
+                    }
+                }
+                
+                if (shouldSetCookie) {
                     var expires = new Date();
                     expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
                     var isSecure = window.location.protocol === 'https:';
@@ -53,10 +62,21 @@
                         '; SameSite=Lax' + 
                         (isSecure ? '; secure' : '');
                     
-                    // Reload page to refresh stats display
-                    setTimeout(function() {
-                        window.location.href = window.location.pathname + window.location.search.replace(/[?&]wp_visitor_stats_token=[^&]*/, '').replace(/^&/, '?');
-                    }, 500);
+                    // Verify cookie was set
+                    var newCookieValue = getCookie('wp_visitor_stats_token');
+                    if (newCookieValue === savedToken) {
+                        // Cookie set successfully - reload page to show stats
+                        setTimeout(function() {
+                            // Remove token from URL and reload
+                            var newUrl = window.location.pathname;
+                            var search = window.location.search;
+                            search = search.replace(/[?&]wp_visitor_stats_token=[^&]*/, '');
+                            if (search === '?') search = '';
+                            window.location.href = newUrl + search;
+                        }, 300);
+                    } else {
+                        console.warn('WP Visitor Stats: Failed to set cookie via JavaScript');
+                    }
                 }
             }
         }
