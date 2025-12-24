@@ -180,6 +180,13 @@ class WP_Visitor_Stats_DB {
     public function update_online($ip_address, $user_agent = '', $page_url = '') {
         global $wpdb;
         
+        // Don't track excluded IPs
+        if ($this->is_ip_excluded($ip_address)) {
+            // Remove from online if already there
+            $wpdb->delete($this->table_online, array('ip_address' => $ip_address), array('%s'));
+            return;
+        }
+        
         $now = current_time('mysql');
         
         // Check if already online
