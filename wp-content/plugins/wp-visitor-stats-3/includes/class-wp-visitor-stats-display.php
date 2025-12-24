@@ -265,14 +265,20 @@ class WP_Visitor_Stats_Display {
             $track_all = get_option('wp_visitor_stats_track_all', false);
             if ($track_all !== true && $track_all !== '1' && $track_all !== 1) {
                 // track_all is disabled, need to check permissions
+                // Use enhanced cookie detection
                 if (!$this->db->can_see_stats()) {
-                    // Still return empty, but add a hidden div that JavaScript can check
-                    // This allows JavaScript to detect and potentially refresh the page
+                    // Return a hidden div that JavaScript can use to set cookie and refresh
                     $saved_token = get_option('wp_visitor_stats_cookie_token', '');
                     if (!empty($saved_token)) {
+                        // Check URL parameter as fallback
+                        $url_token = isset($_GET['wp_visitor_stats_token']) ? sanitize_text_field($_GET['wp_visitor_stats_token']) : '';
+                        $has_url_token = ($url_token === $saved_token);
+                        
                         // Add a data attribute that JavaScript can check
-                        return '<div id="wp-visitor-stats-hidden" data-token-check="' . esc_attr($saved_token) . '" style="display: none;"></div>';
+                        // If token is in URL, mark it so JS can set cookie immediately
+                        return '<div id="wp-visitor-stats-hidden" data-token-check="' . esc_attr($saved_token) . '" data-has-url-token="' . ($has_url_token ? '1' : '0') . '" style="display: none !important; visibility: hidden !important;"></div>';
                     }
+                    // No token in DB - return empty (user needs to generate cookie link)
                     return '';
                 }
             }
