@@ -204,136 +204,19 @@ class WP_Visitor_Stats_Display {
         static $displayed = false;
         // Only display once to avoid duplicates
         if (!$displayed && !is_admin()) {
-            // Check if we should display stats
+            // Check if plugin is enabled
             $enabled = get_option('wp_visitor_stats_enabled', true);
-            $track_all = get_option('wp_visitor_stats_track_all', false);
-            
-            // If disabled, don't show
             if ($enabled === false || $enabled === '0' || $enabled === 0) {
                 return;
             }
             
-            // If track_all is enabled, always show stats
-            $should_show = false;
-            if ($track_all === true || $track_all === '1' || $track_all === 1) {
-                $should_show = true;
-            } else {
-                // Check if user can see stats (cookie or IP)
-                $should_show = $this->db->can_see_stats();
-            }
-            
-            // Always try to get HTML (even if should_show is false, to allow JS to handle it)
+            // Get HTML - this function handles all permission checks
             $html = $this->get_stats_html();
             
-            // If we should show or HTML is not empty (contains hidden div for JS), display it
-            if ($should_show || !empty($html)) {
-                // Add mobile-friendly wrapper with inline styles for better compatibility
-                // Also add JavaScript to verify cookie and force display if needed
-                echo '<div id="wp-visitor-stats-wrapper" style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important; width: 100%; margin: 0; padding: 0;">' . $html . '</div>';
-                
-                // Add JavaScript to verify cookie on client side and ensure visibility
-                $saved_token = get_option('wp_visitor_stats_cookie_token', '');
-                if (!empty($saved_token)) {
-                    ?>
-                    <script>
-                    (function() {
-                        // Verify cookie exists
-                        function getCookie(name) {
-                            var value = "; " + document.cookie;
-                            var parts = value.split("; " + name + "=");
-                            if (parts.length === 2) return decodeURIComponent(parts.pop().split(";").shift());
-                            return null;
-                        }
-                        
-                        var cookieValue = getCookie('wp_visitor_stats_token');
-                        var savedToken = '<?php echo esc_js($saved_token); ?>';
-                        var trackAll = <?php echo ($track_all === true || $track_all === '1' || $track_all === 1) ? 'true' : 'false'; ?>;
-                        
-                        // If track_all is enabled, always show stats
-                        var shouldShow = trackAll;
-                        
-                        // If cookie exists and matches, show stats
-                        if (!shouldShow && cookieValue === savedToken) {
-                            shouldShow = true;
-                        }
-                        
-                        // If cookie doesn't exist but should, try to set it from URL parameter
-                        if (!cookieValue && savedToken) {
-                            var urlParams = new URLSearchParams(window.location.search);
-                            var tokenParam = urlParams.get('wp_visitor_stats_token');
-                            if (tokenParam === savedToken) {
-                                // Set cookie via JavaScript
-                                var expires = new Date();
-                                expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
-                                var isSecure = window.location.protocol === 'https:';
-                                document.cookie = 'wp_visitor_stats_token=' + encodeURIComponent(savedToken) + 
-                                    '; expires=' + expires.toUTCString() + 
-                                    '; path=/' + 
-                                    '; SameSite=Lax' + 
-                                    (isSecure ? '; secure' : '');
-                                shouldShow = true;
-                                
-                                // Reload page to show stats
-                                setTimeout(function() {
-                                    var currentUrl = window.location.href;
-                                    var urlParts = currentUrl.split('?');
-                                    var baseUrl = urlParts[0];
-                                    var queryString = urlParts[1] || '';
-                                    if (queryString) {
-                                        var params = new URLSearchParams(queryString);
-                                        params.delete('wp_visitor_stats_token');
-                                        var newQuery = params.toString();
-                                        baseUrl = baseUrl + (newQuery ? '?' + newQuery : '');
-                                    }
-                                    window.location.href = baseUrl;
-                                }, 500);
-                            }
-                        }
-                        
-                        // Ensure stats wrapper is visible
-                        var wrapper = document.getElementById('wp-visitor-stats-wrapper');
-                        if (wrapper) {
-                            if (shouldShow) {
-                                wrapper.style.display = 'block';
-                                wrapper.style.visibility = 'visible';
-                                wrapper.style.opacity = '1';
-                                // Force all child elements to be visible
-                                var statsContainer = wrapper.querySelector('.wp-visitor-stats-container');
-                                if (statsContainer) {
-                                    statsContainer.style.display = 'inline-flex';
-                                    statsContainer.style.visibility = 'visible';
-                                    statsContainer.style.opacity = '1';
-                                }
-                            } else {
-                                // Only hide if track_all is disabled AND cookie doesn't exist
-                                if (!trackAll && !cookieValue) {
-                                    wrapper.style.display = 'none';
-                                } else {
-                                    // Show if track_all or cookie exists
-                                    wrapper.style.display = 'block';
-                                    wrapper.style.visibility = 'visible';
-                                    wrapper.style.opacity = '1';
-                                }
-                            }
-                        }
-                    })();
-                    </script>
-                    <?php
-                } else if ($track_all === true || $track_all === '1' || $track_all === 1) {
-                    // If track_all is enabled but no token, just ensure visibility
-                    ?>
-                    <script>
-                    (function() {
-                        var wrapper = document.getElementById('wp-visitor-stats-wrapper');
-                        if (wrapper) {
-                            wrapper.style.display = 'block';
-                            wrapper.style.visibility = 'visible';
-                            wrapper.style.opacity = '1';
-                        }
-                    })();
-                    </script>
-                    <?php
-                }
+            // Only display if HTML is not empty
+            if (!empty($html)) {
+                // Simple wrapper - always visible, let CSS handle styling
+                echo '<div id="wp-visitor-stats-wrapper">' . $html . '</div>';
                 $displayed = true;
             }
         }
@@ -345,32 +228,21 @@ class WP_Visitor_Stats_Display {
      */
     public function get_stats_html() {
         try {
-            // Check if track_all is enabled - if so, always generate stats HTML
+            // Check if we should show stats
             $track_all = get_option('wp_visitor_stats_track_all', false);
-            $can_see = false;
             
+            // If track_all is enabled, always show stats
             if ($track_all === true || $track_all === '1' || $track_all === 1) {
-                // track_all is enabled - always show stats to everyone
-                $can_see = true;
+                // Always generate HTML - track_all means show to everyone
             } else {
-                // track_all is disabled, need to check permissions
-                // Use enhanced cookie detection
-                $can_see = $this->db->can_see_stats();
-                
-                // If can't see but token exists, we'll still generate HTML
-                // JavaScript will handle showing/hiding based on cookie
-                if (!$can_see) {
-                    $saved_token = get_option('wp_visitor_stats_cookie_token', '');
-                    if (empty($saved_token)) {
-                        // No token in DB - return empty (user needs to generate cookie link)
-                        return '';
-                    }
-                    // Token exists but can't see - we'll generate HTML anyway
-                    // JavaScript will show it if cookie is set
+                // track_all is disabled - check permissions
+                if (!$this->db->can_see_stats()) {
+                    // User can't see stats - return empty
+                    return '';
                 }
             }
             
-            // Always generate stats HTML if we reach here (track_all enabled OR can_see OR token exists)
+            // Generate stats HTML
             
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
