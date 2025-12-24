@@ -39,8 +39,8 @@ class WP_Visitor_Stats_Display {
             // track_all is explicitly disabled - require permissions (cookie or IP)
             $should_show = $this->db->can_see_stats();
         } else {
-            // track_all is not set (null) - for backward compatibility, show to everyone
-            // This helps after HTTPS migration when cookies might be lost
+            // track_all is not set (null) - default to showing to everyone for backward compatibility
+            // This ensures stats work after HTTPS migration when cookies might be lost
             $should_show = true;
         }
         
