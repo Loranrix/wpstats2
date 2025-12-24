@@ -42,13 +42,23 @@ $periods = array(
         </thead>
         <tbody>
             <?php 
-            $total_visitors = array_sum(array_column($countries, 'unique_visitors'));
-            foreach ($countries as $country): 
-                $percentage = $total_visitors > 0 ? ($country->unique_visitors / $total_visitors) * 100 : 0;
+            if (empty($countries) || !is_array($countries)) {
+                echo '<tr><td colspan="5" style="text-align: center; padding: 20px;">' . __('No data available', 'wp-visitor-stats') . '</td></tr>';
+            } else {
+                $total_visitors = array_sum(array_column($countries, 'unique_visitors'));
+                foreach ($countries as $country): 
+                    $percentage = $total_visitors > 0 ? ($country->unique_visitors / $total_visitors) * 100 : 0;
             ?>
             <tr>
                 <td>
-                    <?php echo wp_visitor_stats_get_flag_svg($country->country_code); ?>
+                    <?php 
+                    if (!empty($country->country_code)) {
+                        $flag_url = 'https://flagcdn.com/w40/' . strtolower(esc_attr($country->country_code)) . '.svg';
+                        echo '<img src="' . esc_url($flag_url) . '" alt="' . esc_attr($country->country_code) . '" style="width: 40px; height: auto; border: 1px solid #ddd; border-radius: 2px;" onerror="this.style.display=\'none\';">';
+                    } else {
+                        echo '<span style="display: inline-block; width: 32px; height: 24px; background: #ddd; border-radius: 2px;"></span>';
+                    }
+                    ?>
                 </td>
                 <td>
                     <strong><?php echo esc_html($country->country_name); ?></strong>
@@ -70,8 +80,12 @@ $periods = array(
                     </div>
                 </td>
             </tr>
-            <?php endforeach; ?>
+            <?php 
+                endforeach; 
+            }
+            ?>
         </tbody>
+        <?php if (!empty($countries) && is_array($countries)): ?>
         <tfoot>
             <tr>
                 <th colspan="2"><?php _e('Total', 'wp-visitor-stats'); ?></th>
@@ -80,6 +94,7 @@ $periods = array(
                 <th>100%</th>
             </tr>
         </tfoot>
+        <?php endif; ?>
     </table>
 </div>
 

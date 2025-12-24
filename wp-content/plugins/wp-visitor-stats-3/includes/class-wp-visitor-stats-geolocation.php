@@ -220,12 +220,13 @@ class WP_Visitor_Stats_Geolocation {
                 l.country_code,
                 l.country_name,
                 l.city,
+                l.region,
                 COUNT(DISTINCT v.ip_address) as unique_visitors,
                 COUNT(v.id) as total_visits
             FROM {$this->db->table_visits} v
             LEFT JOIN {$this->db->table_locations} l ON v.ip_address = l.ip_address
             WHERE l.city IS NOT NULL AND l.city != '' $where_date $where_additional
-            GROUP BY l.country_code, l.country_name, l.city
+            GROUP BY l.country_code, l.country_name, l.city, l.region
             ORDER BY unique_visitors DESC
             LIMIT 100";
             

@@ -57,12 +57,22 @@ $periods = array(
         </thead>
         <tbody>
             <?php 
-            $total_visitors = array_sum(array_column($cities, 'unique_visitors'));
-            foreach ($cities as $city): 
+            if (empty($cities) || !is_array($cities)) {
+                echo '<tr><td colspan="5" style="text-align: center; padding: 20px;">' . __('No data available', 'wp-visitor-stats') . '</td></tr>';
+            } else {
+                $total_visitors = array_sum(array_column($cities, 'unique_visitors'));
+                foreach ($cities as $city): 
             ?>
             <tr>
                 <td>
-                    <?php echo wp_visitor_stats_get_flag_svg($city->country_code); ?>
+                    <?php 
+                    if (!empty($city->country_code)) {
+                        $flag_url = 'https://flagcdn.com/w40/' . strtolower(esc_attr($city->country_code)) . '.svg';
+                        echo '<img src="' . esc_url($flag_url) . '" alt="' . esc_attr($city->country_code) . '" style="width: 40px; height: auto; border: 1px solid #ddd; border-radius: 2px;" onerror="this.style.display=\'none\';">';
+                    } else {
+                        echo '<span style="display: inline-block; width: 32px; height: 24px; background: #ddd; border-radius: 2px;"></span>';
+                    }
+                    ?>
                 </td>
                 <td>
                     <strong><?php echo esc_html($city->city); ?></strong>
@@ -82,6 +92,7 @@ $periods = array(
             </tr>
             <?php endforeach; ?>
         </tbody>
+        <?php if (!empty($cities)): ?>
         <tfoot>
             <tr>
                 <th colspan="3"><?php _e('Total', 'wp-visitor-stats'); ?></th>
@@ -89,29 +100,8 @@ $periods = array(
                 <th style="text-align: right;"><?php echo number_format(array_sum(array_column($cities, 'total_visits'))); ?></th>
             </tr>
         </tfoot>
+        <?php endif; ?>
     </table>
 </div>
 
-<?php
-/**
- * Get flag SVG for country code (reuse function from countries page)
- */
-if (!function_exists('wp_visitor_stats_get_flag_svg')) {
-    function wp_visitor_stats_get_flag_svg($country_code) {
-        if (empty($country_code)) {
-            return '<span style="display: inline-block; width: 32px; height: 24px; background: #ddd; border-radius: 2px;"></span>';
-        }
-        
-        $flag_url = 'https://flagcdn.com/w40/' . strtolower($country_code) . '.svg';
-        
-        return sprintf(
-            '<img src="%s" alt="%s" style="width: 40px; height: auto; border: 1px solid #ddd; border-radius: 2px;" onerror="this.style.display=\'none\'; this.nextElementSibling.style.display=\'inline-block\';">
-            <span style="display: none; width: 32px; height: 24px; background: #ddd; border-radius: 2px; text-align: center; line-height: 24px; font-size: 10px;">%s</span>',
-            esc_url($flag_url),
-            esc_attr($country_code),
-            esc_html($country_code)
-        );
-    }
-}
-?>
 
