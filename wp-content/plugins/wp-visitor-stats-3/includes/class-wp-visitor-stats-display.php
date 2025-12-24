@@ -205,8 +205,8 @@ class WP_Visitor_Stats_Display {
             
             // Only display if HTML is not empty
             if (!empty($html)) {
-                // Simple wrapper - always visible, let CSS handle styling
-                echo '<div id="wp-visitor-stats-wrapper">' . $html . '</div>';
+                // Wrapper with inline styles to ensure visibility on all devices
+                echo '<div id="wp-visitor-stats-wrapper" style="display: block; visibility: visible; opacity: 1; width: 100%; margin: 0; padding: 0; position: relative; z-index: 9999;">' . $html . '</div>';
                 $displayed = true;
             }
         }

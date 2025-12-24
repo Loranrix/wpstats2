@@ -15,10 +15,24 @@ $color_schemes = array(
 $colors = isset($color_schemes[$color_scheme]) ? $color_schemes[$color_scheme] : $color_schemes['blue'];
 ?>
 <style id="wp-visitor-stats-styles">
+#wp-visitor-stats-wrapper {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: relative !important;
+    z-index: 9999 !important;
+}
+
 .wp-visitor-stats {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     font-size: 13px;
     line-height: 1.4;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 .wp-visitor-stats-container {
