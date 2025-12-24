@@ -66,29 +66,9 @@ class WP_Visitor_Stats_API {
                     header('Set-Cookie: ' . $cookie_string, false);
                 }
                 
-                // Also set via JavaScript for better mobile browser support
-                // This ensures the cookie is set even if PHP setcookie fails
-                add_action('wp_footer', function() use ($token, $is_https) {
-                    ?>
-                    <script>
-                    (function() {
-                        // Set cookie via JavaScript for mobile compatibility
-                        var expires = new Date();
-                        expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
-                        var cookieValue = 'wp_visitor_stats_token=<?php echo esc_js($token); ?>; expires=' + expires.toUTCString() + '; path=/; SameSite=Lax<?php echo $is_https ? '; secure' : ''; ?>';
-                        document.cookie = cookieValue;
-                        
-                        // Verify cookie was set (for debugging)
-                        if (document.cookie.indexOf('wp_visitor_stats_token') === -1) {
-                            console.warn('WP Visitor Stats: Cookie may not have been set correctly');
-                        }
-                    })();
-                    </script>
-                    <?php
-                }, 999);
-                
-                // Show confirmation page
-                $this->show_cookie_confirmation();
+                // Show confirmation page with JavaScript to set cookie
+                // We include JS directly since we exit() before wp_footer
+                $this->show_cookie_confirmation($token, $is_https);
                 exit;
             }
         }
@@ -97,10 +77,13 @@ class WP_Visitor_Stats_API {
     /**
      * Show cookie confirmation page
      */
-    private function show_cookie_confirmation() {
+    private function show_cookie_confirmation($token = '', $is_https = false) {
         // Prevent WordPress from loading the theme
         status_header(200);
         nocache_headers();
+        
+        // If token provided, we need to set cookie via JavaScript
+        $js_token = !empty($token) ? $token : '';
         
         ?>
         <!DOCTYPE html>
@@ -147,6 +130,11 @@ class WP_Visitor_Stats_API {
                     font-weight: bold;
                     font-size: 24px;
                 }
+                .loading {
+                    color: #666;
+                    font-size: 14px;
+                    margin-top: 20px;
+                }
             </style>
         </head>
         <body>
@@ -155,7 +143,61 @@ class WP_Visitor_Stats_API {
                 <h1><?php _e('OK', 'wp-visitor-stats'); ?></h1>
                 <p class="success"><?php _e('Cookie Access Activated!', 'wp-visitor-stats'); ?></p>
                 <p><?php _e('You can now see visitor statistics on the website.', 'wp-visitor-stats'); ?></p>
+                <p class="loading" id="cookie-status"><?php _e('Setting cookie...', 'wp-visitor-stats'); ?></p>
             </div>
+            
+            <?php if (!empty($js_token)): ?>
+            <script>
+            (function() {
+                // Set cookie via JavaScript for mobile compatibility
+                // This ensures the cookie is set even if PHP setcookie had issues
+                function setCookie(name, value, days, secure) {
+                    var expires = new Date();
+                    expires.setTime(expires.getTime() + (days * 24 * 60 * 60 * 1000));
+                    var cookieString = name + '=' + encodeURIComponent(value) + 
+                        '; expires=' + expires.toUTCString() + 
+                        '; path=/' + 
+                        '; SameSite=Lax';
+                    if (secure) {
+                        cookieString += '; secure';
+                    }
+                    document.cookie = cookieString;
+                }
+                
+                function getCookie(name) {
+                    var value = "; " + document.cookie;
+                    var parts = value.split("; " + name + "=");
+                    if (parts.length === 2) return decodeURIComponent(parts.pop().split(";").shift());
+                    return null;
+                }
+                
+                // Set the cookie
+                var token = '<?php echo esc_js($js_token); ?>';
+                var isSecure = <?php echo $is_https ? 'true' : 'false'; ?>;
+                setCookie('wp_visitor_stats_token', token, 365, isSecure);
+                
+                // Verify cookie was set
+                var statusEl = document.getElementById('cookie-status');
+                var cookieValue = getCookie('wp_visitor_stats_token');
+                
+                if (cookieValue === token) {
+                    statusEl.innerHTML = '<?php _e('Cookie set successfully!', 'wp-visitor-stats'); ?>';
+                    statusEl.style.color = '#46b450';
+                    
+                    // Redirect to homepage after 1 second to show stats
+                    setTimeout(function() {
+                        // Remove token from URL if present
+                        var currentUrl = window.location.href;
+                        var newUrl = currentUrl.split('?')[0].split('#')[0];
+                        window.location.href = newUrl;
+                    }, 1000);
+                } else {
+                    statusEl.innerHTML = '<?php _e('Cookie may not have been set. Please check your browser settings.', 'wp-visitor-stats'); ?>';
+                    statusEl.style.color = '#dc3232';
+                }
+            })();
+            </script>
+            <?php endif; ?>
         </body>
         </html>
         <?php
