@@ -485,7 +485,7 @@ INSERT INTO `options` (`id`, `name`, `value`) VALUES
 (36, 'smtp_info', '{\"smtp_from_email\":\"smartstore@admin.com\",\"smtp_from_name\":\"SmartStore\",\"protocol\":\"smtp\",\"smtp_host\":\"smtp.gmail.com\",\"smtp_user\":\"hqsmartpanel@gmail.com\",\"smtp_pass\":\"nbiqnjwzjvxnnqdh\",\"smtp_port\":\"587\",\"mailPath\":\"\\/usr\\/sbin\\/sendmail -bs -i\"}'),
 (38, 'coupon_header', '{\"status\":\"0\",\"content\":\"Save 10% today! Apply code: DISCOUNT10\",\"badge_title_status\":\"0\",\"badge_title\":\"Special Offer\",\"image_background\":\"http:\\/\\/smmstore.test\\/code4\\/assets\\/themes\\/regular\\/img\\/home\\/coupon_header.webp\",\"counter_time_status\":\"1\",\"counter_time\":{\"hours\":\"0\",\"minutes\":\"30\"}}'),
 (42, 'app_token_data', '{\"time\":\"2026-03-10 04:30:12\",\"token\":\"f45f2a4dcfcee9aa1b4a55d41406a2442696427d1b7e6adc29ef3ac0834e09e6\"}'),
-(48, 'google_recaptcha', '{\"status\":\"1\",\"site_key\":\"6LeB0R8UAAAAAOvR5IALejEnHxWLEIeAel5Zm7f1\",\"secret_key\":\"6LeB0R8UAAAAAEu5BRQqdXbQHe2sWP9vQL4tOLGf\",\"options\":{\"admin_login_form\":\"0\",\"review_form\":\"0\",\"track_order_form\":\"1\",\"contact_form\":\"0\",\"order_form\":\"1\",\"checkout_form\":\"0\"}}'),
+(48, 'google_recaptcha', '{\"status\":\"1\",\"site_key\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"secret_key\":\"XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX\",\"options\":{\"admin_login_form\":\"0\",\"review_form\":\"0\",\"track_order_form\":\"1\",\"contact_form\":\"0\",\"order_form\":\"1\",\"checkout_form\":\"0\"}}'),
 (49, 'blog_author_name', 'SmartStore'),
 (50, 'site_maintenance_mode', '0'),
 (51, 'website_logo', 'https://smartpanel.dev/assets/images/logo.png'),
