@@ -34,9 +34,9 @@ class WP_Visitor_Stats_Display {
             // Show to everyone - continue
         } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
             // track_all is explicitly disabled, check permissions
-            if (!$this->db->can_see_stats()) {
-                return;
-            }
+            // For mobile compatibility, we continue even if cookie not detected
+            // JavaScript will handle cookie setting and page refresh
+            // The actual check happens in get_stats_html() which is more robust
         } else {
             // track_all option not set (null), default to showing to everyone if enabled
             // This ensures backward compatibility
