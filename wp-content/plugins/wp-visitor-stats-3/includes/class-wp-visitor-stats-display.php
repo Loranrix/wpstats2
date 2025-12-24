@@ -242,7 +242,7 @@ class WP_Visitor_Stats_Display {
                 }
             }
             
-            // Generate stats HTML
+            // Generate stats HTML - we reach here if track_all is enabled OR user has permissions
             
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
