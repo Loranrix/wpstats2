@@ -343,8 +343,10 @@ class WP_Visitor_Stats_DB {
         
         $query = "SELECT COUNT(DISTINCT ip_address) FROM {$this->table_visits} WHERE $where $excluded_condition";
         
+        // Prepare query if we have excluded IPs
         if (!empty($excluded_ips)) {
-            return (int) $wpdb->get_var($wpdb->prepare($query, $excluded_ips));
+            $prepared = $wpdb->prepare($query, $excluded_ips);
+            return (int) $wpdb->get_var($prepared);
         }
         
         return (int) $wpdb->get_var($query);
