@@ -83,11 +83,24 @@ $periods = array(
             <tr>
                 <td>
                     <?php 
-                    if (!empty($city->country_code)) {
-                        $flag_url = 'https://flagcdn.com/w40/' . strtolower(esc_attr($city->country_code)) . '.svg';
-                        echo '<img src="' . esc_url($flag_url) . '" alt="' . esc_attr($city->country_code) . '" style="width: 40px; height: auto; border: 1px solid #ddd; border-radius: 2px;" onerror="this.style.display=\'none\';">';
+                    if (!empty($city->country_code) && strlen($city->country_code) >= 2) {
+                        $country_code_lower = strtolower(trim($city->country_code));
+                        // Try multiple flag sources for better compatibility
+                        $flag_urls = array(
+                            'https://flagcdn.com/w40/' . $country_code_lower . '.svg',
+                            'https://flagcdn.com/w40/' . $country_code_lower . '.png',
+                            'https://flagsapi.com/' . strtoupper($country_code_lower) . '/flat/32.png'
+                        );
+                        $flag_url = $flag_urls[0]; // Primary source
+                        ?>
+                        <img src="<?php echo esc_url($flag_url); ?>" 
+                             alt="<?php echo esc_attr($city->country_code); ?>" 
+                             style="width: 40px; height: auto; border: 1px solid #ddd; border-radius: 2px; display: block;"
+                             onerror="this.onerror=null; this.src='<?php echo esc_js($flag_urls[1]); ?>'; this.onerror=function(){this.onerror=null; this.src='<?php echo esc_js($flag_urls[2]); ?>'; this.onerror=function(){this.style.display='none'; this.nextElementSibling.style.display='inline-block';};};">
+                        <span style="display: none; width: 40px; height: 30px; background: #ddd; border-radius: 2px; text-align: center; line-height: 30px; font-size: 10px; font-weight: bold;"><?php echo esc_html(strtoupper($city->country_code)); ?></span>
+                    <?php 
                     } else {
-                        echo '<span style="display: inline-block; width: 32px; height: 24px; background: #ddd; border-radius: 2px;"></span>';
+                        echo '<span style="display: inline-block; width: 40px; height: 30px; background: #ddd; border-radius: 2px; text-align: center; line-height: 30px; font-size: 10px;">?</span>';
                     }
                     ?>
                 </td>

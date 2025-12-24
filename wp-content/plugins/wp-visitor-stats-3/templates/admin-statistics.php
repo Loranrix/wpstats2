@@ -88,10 +88,22 @@
                     <?php foreach (array_slice($top_countries, 0, 10) as $country): ?>
                     <tr>
                         <td>
-                            <img src="https://flagcdn.com/w20/<?php echo strtolower(esc_attr($country->country_code)); ?>.svg" 
+                            <?php 
+                            if (!empty($country->country_code) && strlen($country->country_code) >= 2) {
+                                $country_code_lower = strtolower(trim($country->country_code));
+                                $flag_urls = array(
+                                    'https://flagcdn.com/w20/' . $country_code_lower . '.svg',
+                                    'https://flagcdn.com/w20/' . $country_code_lower . '.png',
+                                    'https://flagsapi.com/' . strtoupper($country_code_lower) . '/flat/16.png'
+                                );
+                            ?>
+                            <img src="<?php echo esc_url($flag_urls[0]); ?>" 
                                  alt="<?php echo esc_attr($country->country_code); ?>" 
-                                 style="width: 20px; height: auto; vertical-align: middle;"
-                                 onerror="this.style.display='none';">
+                                 style="width: 20px; height: auto; vertical-align: middle; display: inline-block;"
+                                 onerror="this.onerror=null; this.src='<?php echo esc_js($flag_urls[1]); ?>'; this.onerror=function(){this.onerror=null; this.src='<?php echo esc_js($flag_urls[2]); ?>'; this.onerror=function(){this.style.display='none';};};">
+                            <?php } else { ?>
+                            <span style="display: inline-block; width: 20px; height: 15px; background: #ddd; border-radius: 2px; vertical-align: middle;"></span>
+                            <?php } ?>
                         </td>
                         <td><?php echo esc_html($country->country_name); ?></td>
                         <td style="text-align: right; font-weight: bold;">
@@ -124,10 +136,22 @@
                     <?php foreach (array_slice($top_cities, 0, 10) as $city): ?>
                     <tr>
                         <td>
-                            <img src="https://flagcdn.com/w20/<?php echo strtolower(esc_attr($city->country_code)); ?>.svg" 
+                            <?php 
+                            if (!empty($city->country_code) && strlen($city->country_code) >= 2) {
+                                $country_code_lower = strtolower(trim($city->country_code));
+                                $flag_urls = array(
+                                    'https://flagcdn.com/w20/' . $country_code_lower . '.svg',
+                                    'https://flagcdn.com/w20/' . $country_code_lower . '.png',
+                                    'https://flagsapi.com/' . strtoupper($country_code_lower) . '/flat/16.png'
+                                );
+                            ?>
+                            <img src="<?php echo esc_url($flag_urls[0]); ?>" 
                                  alt="<?php echo esc_attr($city->country_code); ?>" 
-                                 style="width: 20px; height: auto; vertical-align: middle;"
-                                 onerror="this.style.display='none';">
+                                 style="width: 20px; height: auto; vertical-align: middle; display: inline-block;"
+                                 onerror="this.onerror=null; this.src='<?php echo esc_js($flag_urls[1]); ?>'; this.onerror=function(){this.onerror=null; this.src='<?php echo esc_js($flag_urls[2]); ?>'; this.onerror=function(){this.style.display='none';};};">
+                            <?php } else { ?>
+                            <span style="display: inline-block; width: 20px; height: 15px; background: #ddd; border-radius: 2px; vertical-align: middle;"></span>
+                            <?php } ?>
                         </td>
                         <td>
                             <?php echo esc_html($city->city); ?>

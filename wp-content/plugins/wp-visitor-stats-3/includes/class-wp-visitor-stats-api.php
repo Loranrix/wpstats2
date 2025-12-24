@@ -37,8 +37,56 @@ class WP_Visitor_Stats_API {
             $saved_token = get_option('wp_visitor_stats_cookie_token', '');
             
             if ($token === $saved_token && !empty($saved_token)) {
-                // Set cookie for 1 year
-                setcookie('wp_visitor_stats_token', $token, time() + (365 * 24 * 60 * 60), '/', '', is_ssl(), true);
+                // Get site domain for cookie
+                $site_url = parse_url(home_url());
+                $domain = isset($site_url['host']) ? $site_url['host'] : '';
+                
+                // Remove www. prefix for cookie domain compatibility
+                if (strpos($domain, 'www.') === 0) {
+                    $domain = substr($domain, 4);
+                }
+                
+                // Set cookie for 1 year with proper mobile support
+                // Use SameSite=None for cross-site compatibility (mobile apps, etc.)
+                // Secure flag only if HTTPS, otherwise mobile HTTP sites won't work
+                $is_https = is_ssl() || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
+                
+                // Set cookie with SameSite attribute for better mobile support
+                $cookie_params = array(
+                    'expires' => time() + (365 * 24 * 60 * 60),
+                    'path' => '/',
+                    'domain' => $domain,
+                    'secure' => $is_https,
+                    'httponly' => false, // Allow JavaScript access if needed
+                    'samesite' => 'Lax' // Better mobile compatibility
+                );
+                
+                // PHP 7.3+ supports array format
+                if (PHP_VERSION_ID >= 70300) {
+                    setcookie('wp_visitor_stats_token', $token, $cookie_params);
+                } else {
+                    // Fallback for older PHP versions
+                    $cookie_string = 'wp_visitor_stats_token=' . urlencode($token);
+                    $cookie_string .= '; expires=' . gmdate('D, d M Y H:i:s \G\M\T', $cookie_params['expires']);
+                    $cookie_string .= '; path=' . $cookie_params['path'];
+                    if (!empty($cookie_params['domain'])) {
+                        $cookie_string .= '; domain=' . $cookie_params['domain'];
+                    }
+                    if ($cookie_params['secure']) {
+                        $cookie_string .= '; secure';
+                    }
+                    $cookie_string .= '; SameSite=' . $cookie_params['samesite'];
+                    header('Set-Cookie: ' . $cookie_string, false);
+                }
+                
+                // Also set via JavaScript for better mobile browser support
+                add_action('wp_footer', function() use ($token) {
+                    ?>
+                    <script>
+                    document.cookie = 'wp_visitor_stats_token=<?php echo esc_js($token); ?>; path=/; max-age=<?php echo 365 * 24 * 60 * 60; ?>; SameSite=Lax<?php echo is_ssl() ? '; secure' : ''; ?>';
+                    </script>
+                    <?php
+                }, 999);
                 
                 // Show confirmation page
                 $this->show_cookie_confirmation();
