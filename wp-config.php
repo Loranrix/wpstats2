@@ -89,7 +89,24 @@ define( 'WP_DEBUG', false );
 
 /* Add any custom values between this line and the "stop editing" line. */
 
+// Force HTTPS
+if (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https') {
+    $_SERVER['HTTPS'] = 'on';
+}
+if (isset($_SERVER['HTTP_X_FORWARDED_SSL']) && $_SERVER['HTTP_X_FORWARDED_SSL'] === 'on') {
+    $_SERVER['HTTPS'] = 'on';
+}
 
+// Force SSL for admin and login
+define('FORCE_SSL_ADMIN', true);
+
+// Set site URL to HTTPS if available
+if (!defined('WP_HOME')) {
+    define('WP_HOME', 'https://loranrix.com');
+}
+if (!defined('WP_SITEURL')) {
+    define('WP_SITEURL', 'https://loranrix.com');
+}
 
 /* That's all, stop editing! Happy publishing. */
 
