@@ -101,7 +101,10 @@ $periods = array(
                     <?php echo number_format(isset($city->total_visits) ? (int) $city->total_visits : 0); ?>
                 </td>
             </tr>
-            <?php endforeach; ?>
+            <?php 
+                endforeach;
+            }
+            ?>
         </tbody>
         <?php if (!empty($cities) && is_array($cities)): ?>
         <tfoot>
