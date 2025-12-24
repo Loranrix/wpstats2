@@ -58,22 +58,22 @@ class WP_Visitor_Stats_Dashboard {
      */
     public function render_dashboard_widget() {
         try {
-            $stats = array(
+        $stats = array(
                 'today' => (int) $this->db->get_unique_visitor_count('today'),
                 'week' => (int) $this->db->get_unique_visitor_count('week'),
                 'month' => (int) $this->db->get_unique_visitor_count('month'),
                 'year' => (int) $this->db->get_unique_visitor_count('year'),
                 'online' => (int) $this->db->get_online_count()
-            );
-            
+        );
+        
             $top_countries = array();
             $top_cities = array();
             
             try {
-                require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-                $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-                $top_countries = $geolocation->get_visitors_by_country('today');
-                $top_cities = $geolocation->get_visitors_by_city('today');
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        $top_countries = $geolocation->get_visitors_by_country('today');
+        $top_cities = $geolocation->get_visitors_by_city('today');
             } catch (Exception $e) {
                 error_log('WP Visitor Stats - Error loading geolocation in dashboard: ' . $e->getMessage());
                 // Continue without geolocation data

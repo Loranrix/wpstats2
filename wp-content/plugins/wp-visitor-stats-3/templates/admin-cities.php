@@ -32,10 +32,10 @@ $periods = array(
                     <option value=""><?php _e('All Countries', 'wp-visitor-stats'); ?></option>
                     <?php
                     try {
-                        global $wpdb;
+                    global $wpdb;
                         $countries_list = $wpdb->get_results("SELECT DISTINCT country_code, country_name FROM {$wpdb->prefix}visitor_stats_locations WHERE country_code IS NOT NULL AND country_code != '' ORDER BY country_name");
                         if (is_array($countries_list)) {
-                            foreach ($countries_list as $c):
+                    foreach ($countries_list as $c):
                     ?>
                         <option value="<?php echo esc_attr($c->country_code); ?>" <?php selected($country_code, $c->country_code); ?>>
                             <?php echo esc_html($c->country_name); ?>
@@ -78,7 +78,7 @@ $periods = array(
                         $total_visits += (int) $city->total_visits;
                     }
                 }
-                foreach ($cities as $city): 
+            foreach ($cities as $city): 
             ?>
             <tr>
                 <td>

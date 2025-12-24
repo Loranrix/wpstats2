@@ -91,20 +91,60 @@ $colors = isset($color_schemes[$color_scheme]) ? $color_schemes[$color_scheme] :
     50% { opacity: 0.5; transform: translateY(-50%) scale(1.2); }
 }
 
-/* Responsive */
+/* Responsive - Mobile */
 @media (max-width: 768px) {
     .wp-visitor-stats-container {
-        font-size: 11px;
-        padding: 6px 10px;
-        gap: 6px;
+        font-size: 11px !important;
+        padding: 8px 12px !important;
+        gap: 6px !important;
+        display: inline-flex !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        position: relative !important;
+        z-index: 9999 !important;
+        min-width: auto !important;
+        width: auto !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
     }
     
     .wp-visitor-stats-value {
-        font-size: 12px;
+        font-size: 13px !important;
+        font-weight: 600 !important;
     }
     
     .wp-visitor-stats-label {
-        font-size: 10px;
+        font-size: 10px !important;
+    }
+    
+    .wp-visitor-stats-item {
+        display: flex !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+    }
+    
+    /* Ensure stats are visible on mobile */
+    .wp-visitor-stats {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+    .wp-visitor-stats-container {
+        font-size: 10px !important;
+        padding: 6px 10px !important;
+        gap: 4px !important;
+    }
+    
+    .wp-visitor-stats-value {
+        font-size: 12px !important;
+    }
+    
+    .wp-visitor-stats-label {
+        font-size: 9px !important;
     }
 }
 </style>

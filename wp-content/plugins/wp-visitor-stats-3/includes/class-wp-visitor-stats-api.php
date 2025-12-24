@@ -37,28 +37,18 @@ class WP_Visitor_Stats_API {
             $saved_token = get_option('wp_visitor_stats_cookie_token', '');
             
             if ($token === $saved_token && !empty($saved_token)) {
-                // Get site domain for cookie
-                $site_url = parse_url(home_url());
-                $domain = isset($site_url['host']) ? $site_url['host'] : '';
-                
-                // Remove www. prefix for cookie domain compatibility
-                if (strpos($domain, 'www.') === 0) {
-                    $domain = substr($domain, 4);
-                }
-                
-                // Set cookie for 1 year with proper mobile support
-                // Use SameSite=None for cross-site compatibility (mobile apps, etc.)
-                // Secure flag only if HTTPS, otherwise mobile HTTP sites won't work
+                // For better mobile compatibility, don't set domain explicitly
+                // This allows the cookie to work on all subdomains and mobile browsers
                 $is_https = is_ssl() || (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off');
                 
-                // Set cookie with SameSite attribute for better mobile support
+                // Set cookie for 1 year with proper mobile support
+                // Don't set domain to ensure it works on mobile browsers
                 $cookie_params = array(
                     'expires' => time() + (365 * 24 * 60 * 60),
                     'path' => '/',
-                    'domain' => $domain,
                     'secure' => $is_https,
-                    'httponly' => false, // Allow JavaScript access if needed
-                    'samesite' => 'Lax' // Better mobile compatibility
+                    'httponly' => false, // Allow JavaScript access
+                    'samesite' => 'Lax' // Better mobile compatibility than None
                 );
                 
                 // PHP 7.3+ supports array format
@@ -69,9 +59,6 @@ class WP_Visitor_Stats_API {
                     $cookie_string = 'wp_visitor_stats_token=' . urlencode($token);
                     $cookie_string .= '; expires=' . gmdate('D, d M Y H:i:s \G\M\T', $cookie_params['expires']);
                     $cookie_string .= '; path=' . $cookie_params['path'];
-                    if (!empty($cookie_params['domain'])) {
-                        $cookie_string .= '; domain=' . $cookie_params['domain'];
-                    }
                     if ($cookie_params['secure']) {
                         $cookie_string .= '; secure';
                     }
@@ -80,10 +67,22 @@ class WP_Visitor_Stats_API {
                 }
                 
                 // Also set via JavaScript for better mobile browser support
-                add_action('wp_footer', function() use ($token) {
+                // This ensures the cookie is set even if PHP setcookie fails
+                add_action('wp_footer', function() use ($token, $is_https) {
                     ?>
                     <script>
-                    document.cookie = 'wp_visitor_stats_token=<?php echo esc_js($token); ?>; path=/; max-age=<?php echo 365 * 24 * 60 * 60; ?>; SameSite=Lax<?php echo is_ssl() ? '; secure' : ''; ?>';
+                    (function() {
+                        // Set cookie via JavaScript for mobile compatibility
+                        var expires = new Date();
+                        expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000)); // 1 year
+                        var cookieValue = 'wp_visitor_stats_token=<?php echo esc_js($token); ?>; expires=' + expires.toUTCString() + '; path=/; SameSite=Lax<?php echo $is_https ? '; secure' : ''; ?>';
+                        document.cookie = cookieValue;
+                        
+                        // Verify cookie was set (for debugging)
+                        if (document.cookie.indexOf('wp_visitor_stats_token') === -1) {
+                            console.warn('WP Visitor Stats: Cookie may not have been set correctly');
+                        }
+                    })();
                     </script>
                     <?php
                 }, 999);

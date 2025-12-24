@@ -289,10 +289,31 @@ class WP_Visitor_Stats_DB {
      * Check if cookie is valid
      */
     public function is_cookie_valid() {
+        // Check both $_COOKIE and $_SERVER['HTTP_COOKIE'] for better mobile compatibility
+        $cookie_value = null;
+        
         if (isset($_COOKIE['wp_visitor_stats_token'])) {
-            $token = get_option('wp_visitor_stats_cookie_token', '');
-            return !empty($token) && $_COOKIE['wp_visitor_stats_token'] === $token;
+            $cookie_value = $_COOKIE['wp_visitor_stats_token'];
+        } elseif (isset($_SERVER['HTTP_COOKIE'])) {
+            // Parse cookies from HTTP_COOKIE header (for mobile browsers that might not populate $_COOKIE)
+            $cookies = array();
+            $cookie_parts = explode(';', $_SERVER['HTTP_COOKIE']);
+            foreach ($cookie_parts as $cookie_part) {
+                $cookie_part = trim($cookie_part);
+                if (strpos($cookie_part, 'wp_visitor_stats_token=') === 0) {
+                    $cookie_value = urldecode(substr($cookie_part, strlen('wp_visitor_stats_token=')));
+                    break;
+                }
+            }
         }
+        
+        if (!empty($cookie_value)) {
+            $token = get_option('wp_visitor_stats_cookie_token', '');
+            if (!empty($token) && $cookie_value === $token) {
+                return true;
+            }
+        }
+        
         return false;
     }
     

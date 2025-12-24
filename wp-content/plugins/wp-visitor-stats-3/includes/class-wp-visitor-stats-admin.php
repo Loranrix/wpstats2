@@ -137,22 +137,22 @@ class WP_Visitor_Stats_Admin {
         
         if ($current_page === 'wp-visitor-stats-settings') {
             // Render settings page
-            if (isset($_POST['wp_visitor_stats_save'])) {
-                check_admin_referer('wp_visitor_stats_settings');
-                $this->save_settings();
-            }
-            
-            if (isset($_POST['wp_visitor_stats_add_ip'])) {
-                check_admin_referer('wp_visitor_stats_settings');
-                $this->add_authorized_ip();
-            }
-            
-            if (isset($_POST['wp_visitor_stats_remove_ip'])) {
-                check_admin_referer('wp_visitor_stats_settings');
-                $this->remove_authorized_ip();
-            }
-            
-            include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-page.php';
+        if (isset($_POST['wp_visitor_stats_save'])) {
+            check_admin_referer('wp_visitor_stats_settings');
+            $this->save_settings();
+        }
+        
+        if (isset($_POST['wp_visitor_stats_add_ip'])) {
+            check_admin_referer('wp_visitor_stats_settings');
+            $this->add_authorized_ip();
+        }
+        
+        if (isset($_POST['wp_visitor_stats_remove_ip'])) {
+            check_admin_referer('wp_visitor_stats_settings');
+            $this->remove_authorized_ip();
+        }
+        
+        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-page.php';
         } else {
             // Render main statistics page
             $this->render_statistics_page();
@@ -191,12 +191,12 @@ class WP_Visitor_Stats_Admin {
      */
     public function render_countries_page() {
         try {
-            require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-            $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-            
-            $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
-            $countries = $geolocation->get_visitors_by_country($period);
-            
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        
+        $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
+        $countries = $geolocation->get_visitors_by_country($period);
+        
             $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-countries.php';
             if (file_exists($template_file)) {
                 include $template_file;
@@ -216,14 +216,14 @@ class WP_Visitor_Stats_Admin {
      */
     public function render_cities_page() {
         try {
-            require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-            $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-            
-            $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
-            $country_code = isset($_GET['country']) ? sanitize_text_field($_GET['country']) : '';
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        
+        $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
+        $country_code = isset($_GET['country']) ? sanitize_text_field($_GET['country']) : '';
             
             // Ensure cities is always an array
-            $cities = $geolocation->get_visitors_by_city($period, $country_code);
+        $cities = $geolocation->get_visitors_by_city($period, $country_code);
             if (!is_array($cities)) {
                 $cities = array();
             }

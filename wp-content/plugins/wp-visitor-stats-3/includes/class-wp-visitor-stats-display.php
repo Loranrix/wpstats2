@@ -206,7 +206,8 @@ class WP_Visitor_Stats_Display {
         if (!$displayed && !is_admin()) {
             $html = $this->get_stats_html();
             if (!empty($html)) {
-                echo $html;
+                // Add mobile-friendly wrapper with inline styles for better compatibility
+                echo '<div style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important;">' . $html . '</div>';
                 $displayed = true;
             }
         }
