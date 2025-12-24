@@ -19,3 +19,6 @@ node_modules
 .env
 .env.local
 
+# Sensitive SQL files with API keys
+likes/lora_likes.sql
+
