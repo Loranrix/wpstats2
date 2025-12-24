@@ -1,0 +1,200 @@
+<?php
+/**
+ * Admin page - WhatsApp Alerts
+ */
+$periods = array(
+    'today' => __('Today', 'wp-visitor-stats'),
+    'week' => __('Last 7 Days', 'wp-visitor-stats'),
+    'month' => __('Last 30 Days', 'wp-visitor-stats'),
+    'year' => __('Last Year', 'wp-visitor-stats')
+);
+
+$current_count = $this->db->get_unique_visitor_count($period);
+?>
+<div class="wrap">
+    <h1><?php _e('WhatsApp Alerts', 'wp-visitor-stats'); ?></h1>
+    
+    <div class="wp-visitor-stats-whatsapp-settings" style="background: #fff; padding: 20px; border: 1px solid #ddd; margin: 20px 0;">
+        <h2><?php _e('Configure WhatsApp Alerts', 'wp-visitor-stats'); ?></h2>
+        
+        <form id="whatsapp-settings-form">
+            <?php wp_nonce_field('wp_visitor_stats_whatsapp', 'whatsapp_nonce'); ?>
+            
+            <table class="form-table">
+                <tr>
+                    <th scope="row">
+                        <label for="whatsapp_enabled"><?php _e('Enable Alerts', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <label>
+                            <input type="checkbox" name="enabled" id="whatsapp_enabled" value="1" <?php checked($enabled, true); ?>>
+                            <?php _e('Send WhatsApp alerts when threshold is reached', 'wp-visitor-stats'); ?>
+                        </label>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="whatsapp_phone"><?php _e('WhatsApp Number', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <input type="text" name="phone" id="whatsapp_phone" value="<?php echo esc_attr($phone); ?>" 
+                               placeholder="+1234567890" class="regular-text">
+                        <p class="description">
+                            <?php _e('Enter your WhatsApp number in international format (e.g., +1234567890). Include country code without spaces or dashes.', 'wp-visitor-stats'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="whatsapp_threshold"><?php _e('Visitor Threshold', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <input type="number" name="threshold" id="whatsapp_threshold" value="<?php echo esc_attr($threshold); ?>" 
+                               min="1" class="small-text">
+                        <p class="description">
+                            <?php _e('Send alert when this number of unique visitors is reached.', 'wp-visitor-stats'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="whatsapp_period"><?php _e('Period', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <select name="period" id="whatsapp_period">
+                            <?php foreach ($periods as $key => $label): ?>
+                                <option value="<?php echo esc_attr($key); ?>" <?php selected($period, $key); ?>>
+                                    <?php echo esc_html($label); ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <p class="description">
+                            <?php _e('Count visitors for this period.', 'wp-visitor-stats'); ?>
+                        </p>
+                    </td>
+                </tr>
+            </table>
+            
+            <p class="submit">
+                <button type="submit" class="button button-primary"><?php _e('Save Settings', 'wp-visitor-stats'); ?></button>
+                <button type="button" id="test-whatsapp" class="button"><?php _e('Send Test Message', 'wp-visitor-stats'); ?></button>
+            </p>
+        </form>
+    </div>
+    
+    <div class="wp-visitor-stats-whatsapp-status" style="background: #f0f6fc; padding: 20px; border-left: 4px solid #2271b1; margin: 20px 0;">
+        <h3><?php _e('Current Status', 'wp-visitor-stats'); ?></h3>
+        <table class="form-table">
+            <tr>
+                <th><?php _e('Current Visitors', 'wp-visitor-stats'); ?>:</th>
+                <td><strong><?php echo number_format($current_count); ?></strong> <?php echo esc_html($periods[$period]); ?></td>
+            </tr>
+            <tr>
+                <th><?php _e('Threshold', 'wp-visitor-stats'); ?>:</th>
+                <td><strong><?php echo number_format($threshold); ?></strong> <?php _e('visitors', 'wp-visitor-stats'); ?></td>
+            </tr>
+            <tr>
+                <th><?php _e('Status', 'wp-visitor-stats'); ?>:</th>
+                <td>
+                    <?php if ($current_count >= $threshold): ?>
+                        <span style="color: #46b450; font-weight: bold;">✓ <?php _e('Threshold Reached!', 'wp-visitor-stats'); ?></span>
+                    <?php else: ?>
+                        <span style="color: #f56e28;">
+                            <?php printf(__('%d more visitors needed', 'wp-visitor-stats'), $threshold - $current_count); ?>
+                        </span>
+                    <?php endif; ?>
+                </td>
+            </tr>
+            <?php if (!empty($last_sent)): ?>
+            <tr>
+                <th><?php _e('Last Alert Sent', 'wp-visitor-stats'); ?>:</th>
+                <td><?php echo esc_html(date_i18n(get_option('date_format') . ' ' . get_option('time_format'), strtotime($last_sent))); ?></td>
+            </tr>
+            <?php endif; ?>
+        </table>
+    </div>
+    
+    <div class="wp-visitor-stats-whatsapp-info" style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+        <h3><?php _e('How It Works', 'wp-visitor-stats'); ?></h3>
+        <ul style="margin-left: 20px;">
+            <li><?php _e('Alerts are checked daily automatically', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('You will receive a WhatsApp message when the threshold is reached', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('Only one alert per day will be sent (to avoid spam)', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('The service uses free APIs (CallMeBot) - no registration required', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('Make sure your phone number is in international format (e.g., +1234567890)', 'wp-visitor-stats'); ?></li>
+        </ul>
+    </div>
+</div>
+
+<script>
+jQuery(document).ready(function($) {
+    $('#whatsapp-settings-form').on('submit', function(e) {
+        e.preventDefault();
+        
+        var formData = {
+            action: 'wp_visitor_stats_save_whatsapp_settings',
+            nonce: $('#whatsapp_nonce').val(),
+            enabled: $('#whatsapp_enabled').is(':checked') ? 1 : 0,
+            phone: $('#whatsapp_phone').val(),
+            threshold: $('#whatsapp_threshold').val(),
+            period: $('#whatsapp_period').val()
+        };
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: formData,
+            success: function(response) {
+                if (response.success) {
+                    alert('<?php _e('Settings saved!', 'wp-visitor-stats'); ?>');
+                    location.reload();
+                } else {
+                    alert(response.data.message || '<?php _e('Error saving settings', 'wp-visitor-stats'); ?>');
+                }
+            }
+        });
+    });
+    
+    $('#test-whatsapp').on('click', function() {
+        var phone = $('#whatsapp_phone').val();
+        
+        if (!phone) {
+            alert('<?php _e('Please enter a phone number first', 'wp-visitor-stats'); ?>');
+            return;
+        }
+        
+        if (!confirm('<?php _e('Send a test message to this number?', 'wp-visitor-stats'); ?>')) {
+            return;
+        }
+        
+        $(this).prop('disabled', true).text('<?php _e('Sending...', 'wp-visitor-stats'); ?>');
+        
+        $.ajax({
+            url: ajaxurl,
+            type: 'POST',
+            data: {
+                action: 'wp_visitor_stats_test_whatsapp',
+                nonce: $('#whatsapp_nonce').val(),
+                phone: phone
+            },
+            success: function(response) {
+                $('#test-whatsapp').prop('disabled', false).text('<?php _e('Send Test Message', 'wp-visitor-stats'); ?>');
+                
+                if (response.success) {
+                    alert(response.data.message || '<?php _e('Test message sent!', 'wp-visitor-stats'); ?>');
+                } else {
+                    alert(response.data.message || '<?php _e('Failed to send test message', 'wp-visitor-stats'); ?>');
+                }
+            },
+            error: function() {
+                $('#test-whatsapp').prop('disabled', false).text('<?php _e('Send Test Message', 'wp-visitor-stats'); ?>');
+                alert('<?php _e('Error sending test message', 'wp-visitor-stats'); ?>');
+            }
+        });
+    });
+});
+</script>
+

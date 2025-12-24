@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maintenance - ciao.lv</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" type="image/jpeg" href="/favicon.jpg">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(to bottom right, #fed7aa, #fee2e2, #fef3c7, #fed7aa);
+            position: relative;
+            overflow: hidden;
+        }
+
+        @keyframes blob {
+            0% {
+                transform: translate(0px, 0px) scale(1);
+            }
+            33% {
+                transform: translate(30px, -50px) scale(1.1);
+            }
+            66% {
+                transform: translate(-20px, 20px) scale(0.9);
+            }
+            100% {
+                transform: translate(0px, 0px) scale(1);
+            }
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        @keyframes bounce {
+            0%, 100% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-20px);
+            }
+        }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            mix-blend-mode: multiply;
+            opacity: 0.3;
+            animation: blob 7s infinite;
+        }
+
+        .blob-1 {
+            top: 80px;
+            left: 40px;
+            width: 288px;
+            height: 288px;
+            background: #fb923c;
+        }
+
+        .blob-2 {
+            top: 160px;
+            right: 40px;
+            width: 288px;
+            height: 288px;
+            background: #f87171;
+            animation-delay: 2s;
+        }
+
+        .blob-3 {
+            bottom: -32px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 288px;
+            height: 288px;
+            background: #fbbf24;
+            animation-delay: 4s;
+        }
+
+        .container {
+            max-width: 48rem;
+            margin: 0 auto;
+            padding: 3rem 1rem;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+        }
+
+        .svg-container {
+            margin-bottom: 3rem;
+            display: flex;
+            justify-content: center;
+        }
+
+        .svg-wrapper {
+            position: relative;
+        }
+
+        .svg-glow {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, #fb923c, #ef4444, #fbbf24);
+            border-radius: 50%;
+            filter: blur(32px);
+            opacity: 0.5;
+            animation: pulse 2s infinite;
+        }
+
+        .gear-svg {
+            width: 400px;
+            height: 400px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .gear-spin {
+            animation: spin 8s linear infinite;
+            transform-origin: center;
+        }
+
+        .gear-spin-reverse {
+            animation: spin 4s linear infinite reverse;
+            transform-origin: center;
+        }
+
+        .gear-pulse {
+            animation: pulse 2s infinite;
+        }
+
+        .gear-bounce {
+            animation: bounce 2s infinite;
+        }
+
+        h1 {
+            font-size: 4.5rem;
+            font-weight: 800;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(to right, #ea580c, #dc2626, #d97706);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: pulse 2s infinite;
+        }
+
+        @media (min-width: 768px) {
+            h1 {
+                font-size: 5rem;
+            }
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(16px);
+            border-radius: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            padding: 2.5rem;
+            margin-bottom: 2.5rem;
+            border: 2px solid rgba(251, 146, 60, 0.5);
+            transition: transform 0.3s;
+        }
+
+        .card:hover {
+            transform: scale(1.02);
+        }
+
+        @media (min-width: 768px) {
+            .card {
+                padding: 4rem;
+            }
+        }
+
+        .card-title {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 1.5rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-title {
+                font-size: 2.25rem;
+            }
+        }
+
+        .card-text {
+            font-size: 1.25rem;
+            color: #4b5563;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .card-text {
+                font-size: 1.5rem;
+            }
+        }
+
+        .card-text-small {
+            font-size: 1.125rem;
+            color: #6b7280;
+            margin-bottom: 2rem;
+        }
+
+        .progress-bar {
+            width: 100%;
+            background: rgba(229, 231, 235, 0.5);
+            border-radius: 9999px;
+            height: 1rem;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .progress-fill {
+            height: 100%;
+            width: 70%;
+            background: linear-gradient(to right, #f97316, #ef4444, #eab308);
+            border-radius: 9999px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-shimmer {
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.75rem;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        @media (min-width: 768px) {
+            .info-grid {
+                grid-template-columns: repeat(3, 1fr);
+            }
+        }
+
+        .info-card {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(251, 146, 60, 0.1);
+            transition: all 0.3s;
+        }
+
+        .info-card:hover {
+            transform: scale(1.05);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .info-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+
+        .info-icon.spin {
+            animation: spin 3s linear infinite;
+        }
+
+        .info-icon.bounce {
+            animation: bounce 2s infinite;
+        }
+
+        .info-title {
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 0.5rem;
+            font-size: 1.125rem;
+        }
+
+        .info-text {
+            color: #4b5563;
+            font-size: 1rem;
+        }
+
+        .contact-card {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(12px);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(251, 146, 60, 0.2);
+        }
+
+        .contact-text {
+            color: #374151;
+            margin-bottom: 0.75rem;
+            font-size: 1.125rem;
+        }
+
+        .contact-link {
+            color: #ea580c;
+            font-weight: 700;
+            text-decoration: underline;
+            font-size: 1.25rem;
+            transition: color 0.2s;
+        }
+
+        .contact-link:hover {
+            color: #c2410c;
+        }
+
+        .sparkle {
+            position: absolute;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .sparkle-1 {
+            top: -150px;
+            left: -150px;
+            width: 8px;
+            height: 8px;
+            background: #fbbf24;
+            opacity: 0.8;
+        }
+
+        .sparkle-2 {
+            top: 50px;
+            right: 150px;
+            width: 8px;
+            height: 8px;
+            background: #f97316;
+            opacity: 0.8;
+            animation-duration: 2.5s;
+        }
+
+        .sparkle-3 {
+            bottom: -150px;
+            left: 50px;
+            width: 8px;
+            height: 8px;
+            background: #dc2626;
+            opacity: 0.8;
+            animation-duration: 1.8s;
+        }
+
+        .sparkle-4 {
+            bottom: 150px;
+            right: -50px;
+            width: 8px;
+            height: 8px;
+            background: #f59e0b;
+            opacity: 0.8;
+            animation-duration: 2.2s;
+        }
+    </style>
+</head>
+<body>
+    <!-- Animated background blobs -->
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+
+    <div class="container">
+        <!-- SVG Animation -->
+        <div class="svg-container">
+            <div class="svg-wrapper">
+                <div class="svg-glow"></div>
+                <svg class="gear-svg" viewBox="0 0 400 400">
+                    <defs>
+                        <linearGradient id="gradient1" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f97316" />
+                            <stop offset="50%" stop-color="#dc2626" />
+                            <stop offset="100%" stop-color="#f59e0b" />
+                        </linearGradient>
+                        <linearGradient id="gradient2" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.6" />
+                            <stop offset="100%" stop-color="#f97316" stop-opacity="0.6" />
+                        </linearGradient>
+                        <linearGradient id="gradient3" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#dc2626" />
+                            <stop offset="100%" stop-color="#f97316" />
+                        </linearGradient>
+                        <linearGradient id="gradient4" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#f59e0b" />
+                            <stop offset="100%" stop-color="#f97316" />
+                        </linearGradient>
+                        <linearGradient id="gradient5" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fbbf24" />
+                            <stop offset="100%" stop-color="#f59e0b" />
+                        </linearGradient>
+                        <linearGradient id="gradient6" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#fbbf24" />
+                            <stop offset="100%" stop-color="#f59e0b" />
+                        </linearGradient>
+                    </defs>
+                    
+                    <g transform="translate(200, 200)">
+                        <!-- Outer ring -->
+                        <circle cx="0" cy="0" r="140" fill="none" stroke="url(#gradient1)" stroke-width="4" opacity="0.3" class="gear-spin" />
+                        
+                        <!-- Gear teeth - outer -->
+                        <g class="gear-spin">
+                            <path d="M -120 -30 L -100 -30 L -90 -50 L -110 -60 L -120 -40 Z" fill="url(#gradient1)" />
+                            <path d="M 30 -120 L 50 -120 L 60 -100 L 40 -90 L 30 -110 Z" fill="url(#gradient1)" />
+                            <path d="M 120 30 L 100 30 L 90 50 L 110 60 L 120 40 Z" fill="url(#gradient1)" />
+                            <path d="M -30 120 L -50 120 L -60 100 L -40 90 L -30 110 Z" fill="url(#gradient1)" />
+                            <path d="M -85 -85 L -70 -85 L -65 -100 L -80 -105 L -85 -90 Z" fill="url(#gradient1)" />
+                            <path d="M 85 -85 L 70 -85 L 65 -100 L 80 -105 L 85 -90 Z" fill="url(#gradient1)" />
+                            <path d="M 85 85 L 70 85 L 65 100 L 80 105 L 85 90 Z" fill="url(#gradient1)" />
+                            <path d="M -85 85 L -70 85 L -65 100 L -80 105 L -85 90 Z" fill="url(#gradient1)" />
+                        </g>
+                        
+                        <!-- Middle gear -->
+                        <circle cx="0" cy="0" r="80" fill="url(#gradient2)" opacity="0.4" class="gear-pulse" />
+                        
+                        <!-- Inner gear - reverse -->
+                        <g class="gear-spin-reverse">
+                            <circle cx="0" cy="0" r="60" fill="none" stroke="url(#gradient3)" stroke-width="3" opacity="0.5" />
+                            <path d="M -50 -15 L -40 -15 L -35 -30 L -45 -35 L -50 -20 Z" fill="url(#gradient3)" />
+                            <path d="M 15 -50 L 25 -50 L 30 -35 L 20 -30 L 15 -45 Z" fill="url(#gradient3)" />
+                            <path d="M 50 15 L 40 15 L 35 30 L 45 35 L 50 20 Z" fill="url(#gradient3)" />
+                            <path d="M -15 50 L -25 50 L -30 35 L -20 30 L -15 45 Z" fill="url(#gradient3)" />
+                            <path d="M -35 -35 L -25 -35 L -20 -50 L -30 -55 L -35 -40 Z" fill="url(#gradient3)" />
+                            <path d="M 35 -35 L 25 -35 L 20 -50 L 30 -55 L 35 -40 Z" fill="url(#gradient3)" />
+                            <path d="M 35 35 L 25 35 L 20 50 L 30 55 L 35 40 Z" fill="url(#gradient3)" />
+                            <path d="M -35 35 L -25 35 L -20 50 L -30 55 L -35 40 Z" fill="url(#gradient3)" />
+                        </g>
+                        
+                        <!-- Center circle -->
+                        <circle cx="0" cy="0" r="25" fill="url(#gradient4)" class="gear-pulse" />
+                        <circle cx="0" cy="0" r="15" fill="url(#gradient5)" />
+                        
+                        <!-- Wrench tool -->
+                        <g class="gear-bounce">
+                            <path d="M -50 -100 L -30 -90 L -20 -110 L -40 -120 L -50 -105 Z M -30 -100 L -20 -90 L -10 -110 L -20 -115 L -30 -105 Z" fill="url(#gradient6)" stroke="#f59e0b" stroke-width="2" />
+                            <rect x="-35" y="-115" width="30" height="25" fill="url(#gradient6)" rx="3" />
+                            <circle cx="-20" cy="-102" r="8" fill="#fbbf24" />
+                        </g>
+                    </g>
+                    
+                    <!-- Sparkles -->
+                    <circle class="sparkle sparkle-1" cx="-150" cy="-50" r="4" />
+                    <circle class="sparkle sparkle-2" cx="150" cy="50" r="4" />
+                    <circle class="sparkle sparkle-3" cx="50" cy="-150" r="4" />
+                    <circle class="sparkle sparkle-4" cx="-50" cy="150" r="4" />
+                </svg>
+            </div>
+        </div>
+
+        <!-- Title -->
+        <h1>Under Maintenance</h1>
+
+        <!-- Main message card -->
+        <div class="card">
+            <p class="card-title">We're currently performing scheduled maintenance</p>
+            <p class="card-text" id="dots-text">We'll be back online shortly<span id="dots"></span></p>
+            <p class="card-text-small">Thank you for your patience!</p>
+            
+            <!-- Progress bar -->
+            <div class="progress-bar">
+                <div class="progress-fill">
+                    <div class="progress-shimmer"></div>
+                </div>
+            </div>
+            <p class="progress-text">Progress: 70%</p>
+        </div>
+
+        <!-- Info cards -->
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="info-icon bounce">⏱️</div>
+                <p class="info-title">Estimated Time</p>
+                <p class="info-text">A few minutes</p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon spin">🔄</div>
+                <p class="info-title">Status</p>
+                <p class="info-text">In Progress</p>
+            </div>
+            <div class="info-card">
+                <div class="info-icon gear-pulse">ℹ️</div>
+                <p class="info-title">Information</p>
+                <p class="info-text">System Update</p>
+            </div>
+        </div>
+
+        <!-- Contact section -->
+        <div class="contact-card">
+            <p class="contact-text">Need assistance?</p>
+            <a href="mailto:support@ciao.lv" class="contact-link">support@ciao.lv</a>
+        </div>
+    </div>
+
+    <script>
+        // Animate dots
+        let dots = '';
+        setInterval(() => {
+            if (dots === '...') {
+                dots = '';
+            } else {
+                dots += '.';
+            }
+            document.getElementById('dots').textContent = dots;
+        }, 500);
+    </script>
+</body>
+</html>
+

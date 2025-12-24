@@ -1,0 +1,30 @@
+/**
+ * WP Visitor Stats - Admin Styles
+ */
+.wp-visitor-stats-admin {
+    max-width: 1200px;
+}
+
+.wp-visitor-stats-admin .form-table th {
+    width: 200px;
+}
+
+.wp-visitor-stats-admin .widefat {
+    margin-top: 20px;
+}
+
+.wp-visitor-stats-admin #cookie-link-result {
+    background: #f0f0f1;
+    padding: 15px;
+    border-radius: 4px;
+    border-left: 4px solid #2271b1;
+}
+
+.wp-visitor-stats-admin #cookie-link-url {
+    font-family: monospace;
+    background: #fff;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+

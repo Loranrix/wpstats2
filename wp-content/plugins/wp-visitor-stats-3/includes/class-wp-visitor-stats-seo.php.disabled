@@ -1,0 +1,418 @@
+<?php
+/**
+ * SEO Optimization functionality using visitor statistics
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+class WP_Visitor_Stats_SEO {
+    
+    private $db;
+    
+    public function __construct($db) {
+        $this->db = $db;
+        $this->init();
+    }
+    
+    /**
+     * Initialize SEO features
+     */
+    private function init() {
+        add_action('admin_menu', array($this, 'add_seo_menu'));
+        add_action('wp_ajax_wp_visitor_stats_seo_analyze', array($this, 'ajax_analyze_page'));
+        add_action('wp_ajax_wp_visitor_stats_seo_suggestions', array($this, 'ajax_get_suggestions'));
+        
+        // Add SEO meta to pages
+        add_action('wp_head', array($this, 'add_seo_meta'), 1);
+        
+        // Enhanced sitemap
+        add_action('init', array($this, 'register_sitemap_route'));
+    }
+    
+    /**
+     * Add SEO menu
+     */
+    public function add_seo_menu() {
+        add_submenu_page(
+            'wp-visitor-stats',
+            __('SEO Optimization', 'wp-visitor-stats'),
+            __('SEO Tools', 'wp-visitor-stats'),
+            'manage_options',
+            'wp-visitor-stats-seo',
+            array($this, 'render_seo_page')
+        );
+    }
+    
+    /**
+     * Render SEO page
+     */
+    public function render_seo_page() {
+        $enabled = get_option('wp_visitor_stats_seo_enabled', true);
+        $auto_optimize = get_option('wp_visitor_stats_seo_auto_optimize', false);
+        
+        // Get top pages
+        $top_pages = $this->get_top_pages();
+        
+        // Get SEO insights
+        $seo_insights = $this->get_seo_insights();
+        
+        // Get keyword suggestions
+        $keyword_suggestions = $this->get_keyword_suggestions();
+        
+        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-seo.php';
+    }
+    
+    /**
+     * Get top pages by visits
+     */
+    public function get_top_pages($limit = 20) {
+        global $wpdb;
+        
+        $excluded_ips = $this->db->get_excluded_ips();
+        $excluded_condition = '';
+        
+        if (!empty($excluded_ips)) {
+            $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
+            $excluded_condition = "AND ip_address NOT IN ($placeholders)";
+        }
+        
+        $query = "SELECT 
+            page_url,
+            COUNT(DISTINCT ip_address) as unique_visitors,
+            COUNT(*) as total_visits,
+            MIN(visit_time) as first_visit,
+            MAX(visit_time) as last_visit
+        FROM {$this->db->table_visits}
+        WHERE page_url IS NOT NULL AND page_url != '' $excluded_condition
+        GROUP BY page_url
+        ORDER BY unique_visitors DESC
+        LIMIT %d";
+        
+        if (!empty($excluded_ips)) {
+            $params = array_merge($excluded_ips, array($limit));
+            return $wpdb->get_results($wpdb->prepare($query, $params));
+        }
+        
+        return $wpdb->get_results($wpdb->prepare($query, $limit));
+    }
+    
+    /**
+     * Get SEO insights
+     */
+    public function get_seo_insights() {
+        global $wpdb;
+        
+        $insights = array();
+        
+        // Most popular pages
+        $top_pages = $this->get_top_pages(10);
+        $insights['top_pages'] = $top_pages;
+        
+        // Traffic sources
+        $sources = $wpdb->get_results("
+            SELECT 
+                CASE 
+                    WHEN referer LIKE '%google%' THEN 'Google'
+                    WHEN referer LIKE '%bing%' THEN 'Bing'
+                    WHEN referer LIKE '%yahoo%' THEN 'Yahoo'
+                    WHEN referer LIKE '%facebook%' THEN 'Facebook'
+                    WHEN referer LIKE '%twitter%' THEN 'Twitter'
+                    WHEN referer LIKE '%linkedin%' THEN 'LinkedIn'
+                    WHEN referer IS NULL OR referer = '' THEN 'Direct'
+                    ELSE 'Other'
+                END as source,
+                COUNT(DISTINCT ip_address) as visitors
+            FROM {$this->db->table_visits}
+            WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            GROUP BY source
+            ORDER BY visitors DESC
+        ");
+        $insights['traffic_sources'] = $sources;
+        
+        // Geographic distribution
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        $top_countries = $geolocation->get_visitors_by_country('month');
+        $insights['top_countries'] = array_slice($top_countries, 0, 10);
+        
+        // Page load insights (if we track this)
+        $insights['avg_visits_per_page'] = $this->calculate_avg_visits_per_page();
+        
+        return $insights;
+    }
+    
+    /**
+     * Calculate average visits per page
+     */
+    private function calculate_avg_visits_per_page() {
+        global $wpdb;
+        
+        $result = $wpdb->get_row("
+            SELECT 
+                COUNT(DISTINCT page_url) as total_pages,
+                COUNT(DISTINCT ip_address) as total_visitors
+            FROM {$this->db->table_visits}
+            WHERE visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+        ");
+        
+        if ($result && $result->total_pages > 0) {
+            return round($result->total_visitors / $result->total_pages, 2);
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Get keyword suggestions from referrers
+     */
+    public function get_keyword_suggestions() {
+        global $wpdb;
+        
+        $keywords = array();
+        
+        // Extract keywords from Google referrers
+        $google_referrers = $wpdb->get_results("
+            SELECT referer
+            FROM {$this->db->table_visits}
+            WHERE referer LIKE '%google%' 
+            AND referer LIKE '%q=%'
+            AND visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+            LIMIT 100
+        ");
+        
+        foreach ($google_referrers as $ref) {
+            if (preg_match('/[?&]q=([^&]+)/', $ref->referer, $matches)) {
+                $keyword = urldecode($matches[1]);
+                if (!isset($keywords[$keyword])) {
+                    $keywords[$keyword] = 0;
+                }
+                $keywords[$keyword]++;
+            }
+        }
+        
+        arsort($keywords);
+        return array_slice($keywords, 0, 20, true);
+    }
+    
+    /**
+     * Analyze page for SEO
+     */
+    public function ajax_analyze_page() {
+        check_ajax_referer('wp_visitor_stats_seo', 'nonce');
+        
+        $page_url = isset($_POST['page_url']) ? esc_url_raw($_POST['page_url']) : '';
+        
+        if (empty($page_url)) {
+            wp_send_json_error(array('message' => __('Invalid page URL', 'wp-visitor-stats')));
+        }
+        
+        $analysis = $this->analyze_page_seo($page_url);
+        wp_send_json_success($analysis);
+    }
+    
+    /**
+     * Analyze page SEO
+     */
+    private function analyze_page_seo($page_url) {
+        global $wpdb;
+        
+        // Get page statistics
+        $stats = $wpdb->get_row($wpdb->prepare("
+            SELECT 
+                COUNT(DISTINCT ip_address) as unique_visitors,
+                COUNT(*) as total_visits,
+                MIN(visit_time) as first_visit,
+                MAX(visit_time) as last_visit
+            FROM {$this->db->table_visits}
+            WHERE page_url = %s
+        ", $page_url));
+        
+        // Get page post ID if it's a WordPress page
+        $post_id = url_to_postid($page_url);
+        
+        $analysis = array(
+            'url' => $page_url,
+            'unique_visitors' => $stats ? (int) $stats->unique_visitors : 0,
+            'total_visits' => $stats ? (int) $stats->total_visits : 0,
+            'first_visit' => $stats ? $stats->first_visit : null,
+            'last_visit' => $stats ? $stats->last_visit : null,
+            'post_id' => $post_id
+        );
+        
+        if ($post_id) {
+            $post = get_post($post_id);
+            if ($post) {
+                $analysis['title'] = get_the_title($post_id);
+                $analysis['meta_title'] = get_post_meta($post_id, '_yoast_wpseo_title', true);
+                $analysis['meta_description'] = get_post_meta($post_id, '_yoast_wpseo_metadesc', true);
+                $analysis['content_length'] = strlen(strip_tags($post->post_content));
+                $analysis['word_count'] = str_word_count(strip_tags($post->post_content));
+            }
+        }
+        
+        // SEO recommendations
+        $analysis['recommendations'] = $this->get_seo_recommendations($analysis);
+        
+        return $analysis;
+    }
+    
+    /**
+     * Get SEO recommendations
+     */
+    private function get_seo_recommendations($analysis) {
+        $recommendations = array();
+        
+        if ($analysis['unique_visitors'] < 10) {
+            $recommendations[] = array(
+                'type' => 'warning',
+                'message' => __('Low traffic: Consider promoting this page or improving its SEO', 'wp-visitor-stats')
+            );
+        }
+        
+        if (isset($analysis['content_length']) && $analysis['content_length'] < 300) {
+            $recommendations[] = array(
+                'type' => 'warning',
+                'message' => __('Content is too short. Aim for at least 300 words for better SEO', 'wp-visitor-stats')
+            );
+        }
+        
+        if (empty($analysis['meta_description'])) {
+            $recommendations[] = array(
+                'type' => 'info',
+                'message' => __('Add a meta description to improve click-through rates from search engines', 'wp-visitor-stats')
+            );
+        }
+        
+        if ($analysis['unique_visitors'] > 100) {
+            $recommendations[] = array(
+                'type' => 'success',
+                'message' => __('Great! This page is performing well. Consider creating similar content', 'wp-visitor-stats')
+            );
+        }
+        
+        return $recommendations;
+    }
+    
+    /**
+     * AJAX get suggestions
+     */
+    public function ajax_get_suggestions() {
+        check_ajax_referer('wp_visitor_stats_seo', 'nonce');
+        
+        $suggestions = array(
+            'keywords' => $this->get_keyword_suggestions(),
+            'top_pages' => $this->get_top_pages(10),
+            'insights' => $this->get_seo_insights()
+        );
+        
+        wp_send_json_success($suggestions);
+    }
+    
+    /**
+     * Add SEO meta tags
+     */
+    public function add_seo_meta() {
+        if (!is_singular()) {
+            return;
+        }
+        
+        global $post;
+        if (!$post) {
+            return;
+        }
+        
+        // Add structured data for articles
+        if ($post->post_type === 'post') {
+            $this->add_article_schema($post);
+        }
+        
+        // Add breadcrumb schema
+        $this->add_breadcrumb_schema();
+    }
+    
+    /**
+     * Add article schema
+     */
+    private function add_article_schema($post) {
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'Article',
+            'headline' => get_the_title($post->ID),
+            'description' => wp_trim_words(get_the_excerpt($post->ID), 30),
+            'author' => array(
+                '@type' => 'Person',
+                'name' => get_the_author_meta('display_name', $post->post_author)
+            ),
+            'datePublished' => get_the_date('c', $post->ID),
+            'dateModified' => get_the_modified_date('c', $post->ID),
+            'publisher' => array(
+                '@type' => 'Organization',
+                'name' => get_bloginfo('name'),
+                'logo' => array(
+                    '@type' => 'ImageObject',
+                    'url' => get_site_icon_url()
+                )
+            )
+        );
+        
+        if (has_post_thumbnail($post->ID)) {
+            $schema['image'] = get_the_post_thumbnail_url($post->ID, 'full');
+        }
+        
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+    
+    /**
+     * Add breadcrumb schema
+     */
+    private function add_breadcrumb_schema() {
+        if (!function_exists('yoast_breadcrumb')) {
+            return;
+        }
+        
+        $breadcrumbs = yoast_breadcrumb('', '', false);
+        if (empty($breadcrumbs)) {
+            return;
+        }
+        
+        // Parse breadcrumbs and create schema
+        $schema = array(
+            '@context' => 'https://schema.org',
+            '@type' => 'BreadcrumbList',
+            'itemListElement' => array()
+        );
+        
+        $position = 1;
+        $schema['itemListElement'][] = array(
+            '@type' => 'ListItem',
+            'position' => $position++,
+            'name' => get_bloginfo('name'),
+            'item' => home_url()
+        );
+        
+        if (is_singular()) {
+            global $post;
+            $schema['itemListElement'][] = array(
+                '@type' => 'ListItem',
+                'position' => $position,
+                'name' => get_the_title($post->ID),
+                'item' => get_permalink($post->ID)
+            );
+        }
+        
+        echo '<script type="application/ld+json">' . wp_json_encode($schema, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . '</script>' . "\n";
+    }
+    
+    /**
+     * Register enhanced sitemap route
+     */
+    public function register_sitemap_route() {
+        add_rewrite_rule(\ ^visitor-stats-sitemap\\.xml$\, \index.php?wp_visitor_stats_sitemap=1\, \top\);
+        add_action(\template_redirect\, array(\, \generate_sitemap\));
+    }
+    
+    /**
+     * Generate enhanced sitemap
+     */

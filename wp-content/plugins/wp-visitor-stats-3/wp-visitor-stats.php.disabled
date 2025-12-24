@@ -1,0 +1,192 @@
+<?php
+/**
+ * Plugin Name: WP Visitor Stats
+ * Plugin URI: https://loranrix.com
+ * Description: Beautiful visitor statistics display for WordPress. Shows daily, weekly, monthly, yearly visitors and real-time online users. Configurable display position, colors, and formats.
+ * Version: 1.0.0
+ * Author: LoranRix
+ * Author URI: https://loranrix.com
+ * License: GPL v2 or later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: wp-visitor-stats
+ * Domain Path: /languages
+ * Requires at least: 5.0
+ * Tested up to: 6.9
+ * Requires PHP: 7.4
+ */
+
+// Exit if accessed directly
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+// Define plugin constants
+define('WP_VISITOR_STATS_VERSION', '1.0.0');
+define('WP_VISITOR_STATS_PLUGIN_DIR', plugin_dir_path(__FILE__));
+define('WP_VISITOR_STATS_PLUGIN_URL', plugin_dir_url(__FILE__));
+define('WP_VISITOR_STATS_PLUGIN_FILE', __FILE__);
+
+// Include required files
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-db.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-tracker.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-display.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-admin.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-api.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-maintenance.php';
+
+/**
+ * Main plugin class
+ */
+class WP_Visitor_Stats {
+    
+    private static $instance = null;
+    public $db;
+    public $tracker;
+    public $display;
+    public $admin;
+    public $api;
+    
+    /**
+     * Get singleton instance
+     */
+    public static function get_instance() {
+        if (null === self::$instance) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
+    
+    /**
+     * Constructor
+     */
+    private function __construct() {
+        $this->init();
+    }
+    
+    /**
+     * Initialize plugin
+     */
+    private function init() {
+        // Initialize database
+        $this->db = new WP_Visitor_Stats_DB();
+        
+        // Initialize tracker
+        $this->tracker = new WP_Visitor_Stats_Tracker($this->db);
+        
+        // Initialize display
+        $this->display = new WP_Visitor_Stats_Display($this->db);
+        
+        // Initialize admin
+        $this->admin = new WP_Visitor_Stats_Admin($this->db);
+        
+        // Initialize API
+        $this->api = new WP_Visitor_Stats_API($this->db);
+        
+        // Initialize Geolocation
+        $this->geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+        
+        // Initialize WhatsApp Alerts
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-whatsapp.php';
+        $this->whatsapp = new WP_Visitor_Stats_WhatsApp($this->db);
+        
+        // Initialize Email Reports
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-email.php';
+        $this->email = new WP_Visitor_Stats_Email($this->db);
+        
+        // Initialize Dashboard Widget
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-dashboard.php';
+        $this->dashboard = new WP_Visitor_Stats_Dashboard($this->db);
+        
+        // Initialize SEO Tools
+        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-seo.php';
+        $this->seo = new WP_Visitor_Stats_SEO($this->db);
+        
+        // Activation/Deactivation hooks
+        register_activation_hook(WP_VISITOR_STATS_PLUGIN_FILE, 'wp_visitor_stats_activate');
+        register_deactivation_hook(WP_VISITOR_STATS_PLUGIN_FILE, array($this, 'deactivate'));
+        
+        // Load text domain
+        add_action('plugins_loaded', array($this, 'load_textdomain'));
+        
+        // Check for cache plugin conflicts
+        add_action('admin_notices', array($this, 'check_cache_conflicts'));
+    }
+    
+    /**
+     * Load plugin text domain
+     */
+    public function load_textdomain() {
+        load_plugin_textdomain('wp-visitor-stats', false, dirname(plugin_basename(__FILE__)) . '/languages');
+    }
+    
+    /**
+     * Check for cache plugin conflicts
+     */
+    public function check_cache_conflicts() {
+        $cache_plugins = array(
+            'wp-super-cache/wp-cache.php' => 'WP Super Cache',
+            'w3-total-cache/w3-total-cache.php' => 'W3 Total Cache',
+            'wp-rocket/wp-rocket.php' => 'WP Rocket',
+            'litespeed-cache/litespeed-cache.php' => 'LiteSpeed Cache',
+            'autoptimize/autoptimize.php' => 'Autoptimize',
+        );
+        
+        $active_cache_plugins = array();
+        foreach ($cache_plugins as $plugin => $name) {
+            if (is_plugin_active($plugin)) {
+                $active_cache_plugins[] = $name;
+            }
+        }
+        
+        if (!empty($active_cache_plugins) && !get_option('wp_visitor_stats_cache_warning_dismissed')) {
+            $message = sprintf(
+                __('WP Visitor Stats: Cache plugins detected (%s). Real-time statistics may not update correctly. Please configure your cache plugin to exclude the visitor tracking endpoints.', 'wp-visitor-stats'),
+                implode(', ', $active_cache_plugins)
+            );
+            ?>
+            <div class="notice notice-warning is-dismissible" data-dismissible="wp-visitor-stats-cache-warning">
+                <p><?php echo esc_html($message); ?></p>
+            </div>
+            <script>
+            jQuery(document).on('click', '.notice-dismiss', function() {
+                jQuery.post(ajaxurl, {
+                    action: 'wp_visitor_stats_dismiss_cache_warning',
+                    nonce: '<?php echo wp_create_nonce('wp_visitor_stats_dismiss'); ?>'
+                });
+            });
+            </script>
+            <?php
+        }
+    }
+    
+    /**
+     * Deactivation hook
+     */
+    public function deactivate() {
+        // Clean up scheduled events if any
+        wp_clear_scheduled_hook('wp_visitor_stats_cleanup');
+        wp_clear_scheduled_hook('wp_visitor_stats_check_threshold');
+        wp_clear_scheduled_hook('wp_visitor_stats_send_daily_report');
+        wp_clear_scheduled_hook('wp_visitor_stats_send_weekly_report');
+        wp_clear_scheduled_hook('wp_visitor_stats_send_monthly_report');
+    }
+}
+
+/**
+ * Initialize plugin
+ */
+function wp_visitor_stats_init() {
+    return WP_Visitor_Stats::get_instance();
+}
+
+// Start the plugin
+add_action('plugins_loaded', 'wp_visitor_stats_init', 10);
+
+
+
+function wp_visitor_stats_activate() {
+    require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-db.php';
+    $db = new WP_Visitor_Stats_DB();
+    $db->create_tables();
+}
