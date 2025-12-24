@@ -266,10 +266,33 @@ class WP_Visitor_Stats_WhatsApp {
                     return array('success' => true);
                 }
                 
+                // Check for specific error messages
+                $error_message = '';
+                if (stripos($body, 'invalid') !== false || stripos($body, 'error') !== false) {
+                    $error_message = __('CallMeBot API error: Invalid API key or phone number. Please verify your API key and phone number format.', 'wp-visitor-stats');
+                } elseif (stripos($body, 'not registered') !== false || stripos($body, 'not found') !== false) {
+                    $error_message = __('CallMeBot API error: Phone number not registered. Make sure you sent "I allow callmebot to send me messages" to +34 623 78 95 80 on WhatsApp.', 'wp-visitor-stats');
+                } else {
+                    $error_message = sprintf(__('CallMeBot API returned: %s', 'wp-visitor-stats'), substr($body, 0, 100));
+                }
+                
                 // Log error for debugging
-                error_log('WP Visitor Stats - CallMeBot error: ' . $body);
+                error_log('WP Visitor Stats - CallMeBot error (Status: ' . $status_code . '): ' . $body);
+                
+                // Return error if we have a specific message
+                if (!empty($error_message)) {
+                    return array(
+                        'success' => false,
+                        'error' => $error_message
+                    );
+                }
             } else {
-                error_log('WP Visitor Stats - CallMeBot request error: ' . $response->get_error_message());
+                $error_msg = $response->get_error_message();
+                error_log('WP Visitor Stats - CallMeBot request error: ' . $error_msg);
+                return array(
+                    'success' => false,
+                    'error' => sprintf(__('CallMeBot connection error: %s. Please check your internet connection and try again.', 'wp-visitor-stats'), $error_msg)
+                );
             }
         }
         
