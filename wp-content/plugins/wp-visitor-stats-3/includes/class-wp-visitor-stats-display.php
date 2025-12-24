@@ -23,13 +23,19 @@ class WP_Visitor_Stats_Display {
         $enabled = get_option('wp_visitor_stats_enabled', true);
         $track_all = get_option('wp_visitor_stats_track_all', false);
         
-        if (!$enabled) {
+        // If explicitly disabled, don't show
+        if ($enabled === false || $enabled === '0' || $enabled === 0) {
             return;
         }
         
-        // Check if user can see stats (only if track_all is disabled)
-        if (!$track_all && !$this->db->can_see_stats()) {
-            return;
+        // If track_all is enabled, show stats to everyone
+        if ($track_all === true || $track_all === '1' || $track_all === 1) {
+            // Show to everyone
+        } else {
+            // Check if user can see stats (IP authorized or cookie valid)
+            if (!$this->db->can_see_stats()) {
+                return;
+            }
         }
         
         // Add display to header based on position
@@ -61,13 +67,23 @@ class WP_Visitor_Stats_Display {
                 add_action('wp_footer', array($this, 'output_stats_footer'));
         }
         
-        // Always add to footer as backup if other methods fail
+        // Always add to footer as backup if other methods fail (with lower priority)
         if ($position !== 'footer') {
-            add_action('wp_footer', array($this, 'output_stats_footer'), 999);
+            add_action('wp_footer', array($this, 'output_stats_footer_backup'), 999);
         }
         
         // Enqueue scripts
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
+        
+        // Add shortcode for manual display
+        add_shortcode('wp_visitor_stats', array($this, 'shortcode_display'));
+    }
+    
+    /**
+     * Shortcode to display stats manually
+     */
+    public function shortcode_display($atts) {
+        return $this->get_stats_html();
     }
     
     /**
@@ -178,9 +194,24 @@ class WP_Visitor_Stats_Display {
     }
     
     /**
-     * Get stats HTML
+     * Output stats in footer (backup method)
      */
-    private function get_stats_html() {
+    public function output_stats_footer_backup() {
+        static $displayed = false;
+        // Only display if not already displayed by other methods
+        if (!$displayed) {
+            $html = $this->get_stats_html();
+            if (!empty($html)) {
+                echo $html;
+                $displayed = true;
+            }
+        }
+    }
+    
+    /**
+     * Get stats HTML (public for shortcode)
+     */
+    public function get_stats_html() {
         try {
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
