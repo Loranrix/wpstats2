@@ -207,7 +207,49 @@ class WP_Visitor_Stats_Display {
             $html = $this->get_stats_html();
             if (!empty($html)) {
                 // Add mobile-friendly wrapper with inline styles for better compatibility
-                echo '<div style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important;">' . $html . '</div>';
+                // Also add JavaScript to verify cookie and force display if needed
+                echo '<div id="wp-visitor-stats-wrapper" style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important; width: 100%;">' . $html . '</div>';
+                
+                // Add JavaScript to verify cookie on client side and ensure visibility
+                $saved_token = get_option('wp_visitor_stats_cookie_token', '');
+                if (!empty($saved_token)) {
+                    ?>
+                    <script>
+                    (function() {
+                        // Verify cookie exists
+                        function getCookie(name) {
+                            var value = "; " + document.cookie;
+                            var parts = value.split("; " + name + "=");
+                            if (parts.length === 2) return parts.pop().split(";").shift();
+                            return null;
+                        }
+                        
+                        var cookieValue = getCookie('wp_visitor_stats_token');
+                        var savedToken = '<?php echo esc_js($saved_token); ?>';
+                        
+                        // If cookie doesn't exist but should, try to set it from URL parameter
+                        if (!cookieValue && savedToken) {
+                            var urlParams = new URLSearchParams(window.location.search);
+                            var tokenParam = urlParams.get('wp_visitor_stats_token');
+                            if (tokenParam === savedToken) {
+                                // Set cookie via JavaScript
+                                var expires = new Date();
+                                expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
+                                document.cookie = 'wp_visitor_stats_token=' + encodeURIComponent(savedToken) + '; expires=' + expires.toUTCString() + '; path=/; SameSite=Lax<?php echo is_ssl() ? '; secure' : ''; ?>';
+                            }
+                        }
+                        
+                        // Ensure stats wrapper is visible
+                        var wrapper = document.getElementById('wp-visitor-stats-wrapper');
+                        if (wrapper) {
+                            wrapper.style.display = 'block';
+                            wrapper.style.visibility = 'visible';
+                            wrapper.style.opacity = '1';
+                        }
+                    })();
+                    </script>
+                    <?php
+                }
                 $displayed = true;
             }
         }
@@ -219,6 +261,22 @@ class WP_Visitor_Stats_Display {
      */
     public function get_stats_html() {
         try {
+            // Double-check permissions here (in case cookie was set via JavaScript)
+            $track_all = get_option('wp_visitor_stats_track_all', false);
+            if ($track_all !== true && $track_all !== '1' && $track_all !== 1) {
+                // track_all is disabled, need to check permissions
+                if (!$this->db->can_see_stats()) {
+                    // Still return empty, but add a hidden div that JavaScript can check
+                    // This allows JavaScript to detect and potentially refresh the page
+                    $saved_token = get_option('wp_visitor_stats_cookie_token', '');
+                    if (!empty($saved_token)) {
+                        // Add a data attribute that JavaScript can check
+                        return '<div id="wp-visitor-stats-hidden" data-token-check="' . esc_attr($saved_token) . '" style="display: none;"></div>';
+                    }
+                    return '';
+                }
+            }
+            
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
             $color_scheme = get_option('wp_visitor_stats_color', 'blue');

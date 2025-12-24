@@ -287,29 +287,61 @@ class WP_Visitor_Stats_DB {
     
     /**
      * Check if cookie is valid
+     * Enhanced for mobile compatibility
      */
     public function is_cookie_valid() {
-        // Check both $_COOKIE and $_SERVER['HTTP_COOKIE'] for better mobile compatibility
+        $token = get_option('wp_visitor_stats_cookie_token', '');
+        if (empty($token)) {
+            return false;
+        }
+        
         $cookie_value = null;
         
+        // Method 1: Check $_COOKIE (standard)
         if (isset($_COOKIE['wp_visitor_stats_token'])) {
             $cookie_value = $_COOKIE['wp_visitor_stats_token'];
-        } elseif (isset($_SERVER['HTTP_COOKIE'])) {
-            // Parse cookies from HTTP_COOKIE header (for mobile browsers that might not populate $_COOKIE)
-            $cookies = array();
+        }
+        
+        // Method 2: Check $_SERVER['HTTP_COOKIE'] header (for mobile browsers)
+        if (empty($cookie_value) && isset($_SERVER['HTTP_COOKIE'])) {
             $cookie_parts = explode(';', $_SERVER['HTTP_COOKIE']);
             foreach ($cookie_parts as $cookie_part) {
                 $cookie_part = trim($cookie_part);
+                // Try both with and without URL encoding
                 if (strpos($cookie_part, 'wp_visitor_stats_token=') === 0) {
-                    $cookie_value = urldecode(substr($cookie_part, strlen('wp_visitor_stats_token=')));
+                    $cookie_value = substr($cookie_part, strlen('wp_visitor_stats_token='));
+                    // Try URL decode
+                    $cookie_value = urldecode($cookie_value);
                     break;
                 }
             }
         }
         
+        // Method 3: Check $_REQUEST (some mobile browsers put cookies here)
+        if (empty($cookie_value) && isset($_REQUEST['wp_visitor_stats_token'])) {
+            $cookie_value = sanitize_text_field($_REQUEST['wp_visitor_stats_token']);
+        }
+        
+        // Method 4: Check all $_COOKIE keys (case-insensitive search)
+        if (empty($cookie_value)) {
+            foreach ($_COOKIE as $key => $value) {
+                if (strtolower($key) === 'wp_visitor_stats_token') {
+                    $cookie_value = $value;
+                    break;
+                }
+            }
+        }
+        
+        // Validate cookie value
         if (!empty($cookie_value)) {
-            $token = get_option('wp_visitor_stats_cookie_token', '');
-            if (!empty($token) && $cookie_value === $token) {
+            // Trim whitespace and compare
+            $cookie_value = trim($cookie_value);
+            if ($cookie_value === $token) {
+                return true;
+            }
+            // Also try URL decoded version
+            $decoded = urldecode($cookie_value);
+            if ($decoded === $token) {
                 return true;
             }
         }
