@@ -187,30 +187,60 @@ class WP_Visitor_Stats_API {
                     return null;
                 }
                 
-                // Set the cookie
+                // Set the cookie multiple times to ensure it works on all browsers
                 var token = '<?php echo esc_js($js_token); ?>';
                 var isSecure = <?php echo $is_https ? 'true' : 'false'; ?>;
+                
+                // Try setting cookie multiple ways for maximum compatibility
                 setCookie('wp_visitor_stats_token', token, 365, isSecure);
+                
+                // Also try without secure flag if not HTTPS (some mobile browsers reject secure cookies on HTTP)
+                if (!isSecure) {
+                    var expires = new Date();
+                    expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
+                    document.cookie = 'wp_visitor_stats_token=' + encodeURIComponent(token) + 
+                        '; expires=' + expires.toUTCString() + 
+                        '; path=/' + 
+                        '; SameSite=Lax';
+                }
                 
                 // Verify cookie was set
                 var statusEl = document.getElementById('cookie-status');
                 var cookieValue = getCookie('wp_visitor_stats_token');
                 
-                if (cookieValue === token) {
-                    statusEl.innerHTML = '<?php _e('Cookie set successfully!', 'wp-visitor-stats'); ?>';
-                    statusEl.style.color = '#46b450';
+                // Wait a bit for cookie to be set (some browsers need a moment)
+                setTimeout(function() {
+                    cookieValue = getCookie('wp_visitor_stats_token');
                     
-                    // Redirect to homepage after 1 second to show stats
-                    setTimeout(function() {
-                        // Remove token from URL if present
-                        var currentUrl = window.location.href;
-                        var newUrl = currentUrl.split('?')[0].split('#')[0];
-                        window.location.href = newUrl;
-                    }, 1000);
-                } else {
-                    statusEl.innerHTML = '<?php _e('Cookie may not have been set. Please check your browser settings.', 'wp-visitor-stats'); ?>';
-                    statusEl.style.color = '#dc3232';
-                }
+                    if (cookieValue === token) {
+                        statusEl.innerHTML = '<?php _e('Cookie set successfully! Redirecting...', 'wp-visitor-stats'); ?>';
+                        statusEl.style.color = '#46b450';
+                        
+                        // Redirect to homepage after 1.5 seconds to show stats
+                        setTimeout(function() {
+                            // Remove token from URL if present
+                            var currentUrl = window.location.href;
+                            var urlParts = currentUrl.split('?');
+                            var baseUrl = urlParts[0];
+                            var queryString = urlParts[1] || '';
+                            
+                            // Remove wp_visitor_stats_token from query string
+                            if (queryString) {
+                                var params = new URLSearchParams(queryString);
+                                params.delete('wp_visitor_stats_token');
+                                var newQuery = params.toString();
+                                baseUrl = baseUrl + (newQuery ? '?' + newQuery : '');
+                            }
+                            
+                            window.location.href = baseUrl;
+                        }, 1500);
+                    } else {
+                        statusEl.innerHTML = '<?php _e('Cookie may not have been set. Please check your browser settings or try again.', 'wp-visitor-stats'); ?>';
+                        statusEl.style.color = '#dc3232';
+                        console.error('WP Visitor Stats: Cookie not set. Token expected: ' + token.substring(0, 10) + '..., Got: ' + (cookieValue ? cookieValue.substring(0, 10) + '...' : 'null'));
+                        console.log('All cookies:', document.cookie);
+                    }
+                }, 100);
             })();
             </script>
             <?php endif; ?>
