@@ -48,19 +48,27 @@ class WP_Visitor_Stats_Display {
         // Always add CSS
         add_action('wp_head', array($this, 'output_css'), 1);
         
-        // Add display based on position - ONE method only, no fallbacks
+        // Add display based on position
         switch ($position) {
             case 'header_left':
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_left'), 10, 2);
+                // Fallback if menu filter doesn't work
+                add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'header_right':
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_right'), 10, 2);
+                // Fallback if menu filter doesn't work
+                add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'header_center':
                 add_action('wp_body_open', array($this, 'output_stats_center'));
+                // Fallback if wp_body_open not supported
+                add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'before_content':
                 add_action('the_content', array($this, 'output_stats_before_content'), 1);
+                // Fallback if no content
+                add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'footer':
             default:
@@ -164,14 +172,29 @@ class WP_Visitor_Stats_Display {
      * Output stats in center
      */
     public function output_stats_center() {
-        echo $this->get_stats_html();
+        static $displayed = false;
+        if (!$displayed && !is_admin()) {
+            $html = $this->get_stats_html();
+            if (!empty($html)) {
+                echo $html;
+                $displayed = true;
+            }
+        }
     }
     
     /**
      * Output stats before content
      */
     public function output_stats_before_content($content) {
-        return $this->get_stats_html() . $content;
+        static $displayed = false;
+        if (!$displayed && !is_admin()) {
+            $html = $this->get_stats_html();
+            if (!empty($html)) {
+                $content = $html . $content;
+                $displayed = true;
+            }
+        }
+        return $content;
     }
     
     /**
@@ -180,7 +203,7 @@ class WP_Visitor_Stats_Display {
     public function output_stats_footer() {
         static $displayed = false;
         // Only display once to avoid duplicates
-        if (!$displayed) {
+        if (!$displayed && !is_admin()) {
             $html = $this->get_stats_html();
             if (!empty($html)) {
                 echo $html;
