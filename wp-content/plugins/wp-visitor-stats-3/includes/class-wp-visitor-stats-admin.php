@@ -76,6 +76,15 @@ class WP_Visitor_Stats_Admin {
             'wp-visitor-stats-excluded',
             array($this, 'render_excluded_page')
         );
+        
+        add_submenu_page(
+            'wp-visitor-stats',
+            __('Cache Configuration Help', 'wp-visitor-stats'),
+            __('Cache Help', 'wp-visitor-stats'),
+            'manage_options',
+            'wp-visitor-stats-cache-help',
+            array($this, 'render_cache_help_page')
+        );
     }
     
     /**
@@ -309,6 +318,124 @@ class WP_Visitor_Stats_Admin {
             'url' => $cookie_url,
             'token' => $token
         ));
+    }
+    
+    /**
+     * Render cache help page
+     */
+    public function render_cache_help_page() {
+        $help_file = WP_VISITOR_STATS_PLUGIN_DIR . 'CONFIG-LITESPEED.md';
+        
+        if (!file_exists($help_file)) {
+            echo '<div class="wrap"><h1>' . __('Cache Configuration Help', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Help file not found.', 'wp-visitor-stats') . '</p></div></div>';
+            return;
+        }
+        
+        $content = file_get_contents($help_file);
+        
+        // Convert markdown to HTML (basic conversion)
+        $content = $this->markdown_to_html($content);
+        
+        ?>
+        <div class="wrap">
+            <h1><?php _e('Cache Configuration Help', 'wp-visitor-stats'); ?></h1>
+            <div class="wp-visitor-stats-help-content" style="background: #fff; padding: 20px; border: 1px solid #ddd; margin: 20px 0; max-width: 1200px;">
+                <?php echo wp_kses_post($content); ?>
+            </div>
+        </div>
+        <style>
+            .wp-visitor-stats-help-content h1 {
+                border-bottom: 2px solid #2271b1;
+                padding-bottom: 10px;
+                margin-top: 0;
+            }
+            .wp-visitor-stats-help-content h2 {
+                color: #2271b1;
+                margin-top: 30px;
+                border-bottom: 1px solid #ddd;
+                padding-bottom: 5px;
+            }
+            .wp-visitor-stats-help-content h3 {
+                color: #555;
+                margin-top: 20px;
+            }
+            .wp-visitor-stats-help-content code {
+                background: #f5f5f5;
+                padding: 2px 6px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: 13px;
+            }
+            .wp-visitor-stats-help-content pre {
+                background: #f5f5f5;
+                padding: 15px;
+                border-left: 4px solid #2271b1;
+                overflow-x: auto;
+                border-radius: 3px;
+            }
+            .wp-visitor-stats-help-content pre code {
+                background: none;
+                padding: 0;
+            }
+            .wp-visitor-stats-help-content ul, .wp-visitor-stats-help-content ol {
+                margin-left: 20px;
+                line-height: 1.8;
+            }
+            .wp-visitor-stats-help-content li {
+                margin-bottom: 8px;
+            }
+            .wp-visitor-stats-help-content strong {
+                color: #2271b1;
+            }
+            .wp-visitor-stats-help-content a {
+                color: #2271b1;
+                text-decoration: underline;
+            }
+            .wp-visitor-stats-help-content a:hover {
+                color: #135e96;
+            }
+        </style>
+        <?php
+    }
+    
+    /**
+     * Convert basic markdown to HTML
+     */
+    private function markdown_to_html($markdown) {
+        // Headers
+        $markdown = preg_replace('/^# (.*)$/m', '<h1>$1</h1>', $markdown);
+        $markdown = preg_replace('/^## (.*)$/m', '<h2>$1</h2>', $markdown);
+        $markdown = preg_replace('/^### (.*)$/m', '<h3>$1</h3>', $markdown);
+        
+        // Code blocks
+        $markdown = preg_replace('/```(\w+)?\n(.*?)```/s', '<pre><code>$2</code></pre>', $markdown);
+        
+        // Inline code
+        $markdown = preg_replace('/`([^`]+)`/', '<code>$1</code>', $markdown);
+        
+        // Bold
+        $markdown = preg_replace('/\*\*(.+?)\*\*/', '<strong>$1</strong>', $markdown);
+        
+        // Links
+        $markdown = preg_replace('/\[([^\]]+)\]\(([^\)]+)\)/', '<a href="$2" target="_blank">$1</a>', $markdown);
+        
+        // Lists
+        $markdown = preg_replace('/^\* (.+)$/m', '<li>$1</li>', $markdown);
+        $markdown = preg_replace('/^(\d+)\. (.+)$/m', '<li>$2</li>', $markdown);
+        
+        // Wrap consecutive list items in ul tags
+        $markdown = preg_replace('/(<li>.*<\/li>\n?)+/s', '<ul>$0</ul>', $markdown);
+        
+        // Paragraphs (lines that don't start with HTML tags)
+        $markdown = preg_replace('/^(?!<[h|u|o|p|d|s])(.+)$/m', '<p>$1</p>', $markdown);
+        
+        // Clean up empty paragraphs
+        $markdown = preg_replace('/<p><\/p>/', '', $markdown);
+        $markdown = preg_replace('/<p>(<[h|u|o|d|s])/', '$1', $markdown);
+        $markdown = preg_replace('/(<\/[h|u|o|d|s]>)<\/p>/', '$1', $markdown);
+        
+        return $markdown;
     }
 }
 

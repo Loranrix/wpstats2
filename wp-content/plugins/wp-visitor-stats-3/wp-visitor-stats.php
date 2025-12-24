@@ -177,13 +177,21 @@ class WP_Visitor_Stats {
         }
         
         if (!empty($active_cache_plugins) && !get_option('wp_visitor_stats_cache_warning_dismissed')) {
+            $cache_plugin_names = implode(', ', $active_cache_plugins);
+            $help_page_url = admin_url('admin.php?page=wp-visitor-stats-cache-help');
+            
             $message = sprintf(
-                __('WP Visitor Stats: Cache plugins detected (%s). Real-time statistics may not update correctly. Please configure your cache plugin to exclude the visitor tracking endpoints.', 'wp-visitor-stats'),
-                implode(', ', $active_cache_plugins)
+                __('WP Visitor Stats: Cache plugins detected (%s). Real-time statistics may not update correctly. Please configure your cache plugin to exclude the visitor tracking endpoints. %s', 'wp-visitor-stats'),
+                $cache_plugin_names,
+                sprintf(
+                    '<a href="%s" style="text-decoration: underline; font-weight: bold;">%s</a>',
+                    esc_url($help_page_url),
+                    __('See configuration guide', 'wp-visitor-stats')
+                )
             );
             ?>
             <div class="notice notice-warning is-dismissible" data-dismissible="wp-visitor-stats-cache-warning">
-                <p><?php echo esc_html($message); ?></p>
+                <p><?php echo wp_kses_post($message); ?></p>
             </div>
             <script>
             jQuery(document).on('click', '.notice-dismiss', function() {
