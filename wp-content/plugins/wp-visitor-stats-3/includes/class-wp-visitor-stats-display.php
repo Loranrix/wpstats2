@@ -28,9 +28,19 @@ class WP_Visitor_Stats_Display {
             return;
         }
         
-        // Check if we should add display hooks
-        // Always add hooks - get_stats_html() will handle permission checks
-        // This ensures stats can be displayed even if cookie is set via JavaScript
+        // Simple logic: if track_all is enabled OR user can see stats, add hooks
+        $should_show = false;
+        if ($track_all === true || $track_all === '1' || $track_all === 1) {
+            $should_show = true;
+        } else {
+            // Check permissions
+            $should_show = $this->db->can_see_stats();
+        }
+        
+        // If shouldn't show, don't add hooks
+        if (!$should_show) {
+            return;
+        }
         
         // Add display to header based on position
         $position = get_option('wp_visitor_stats_position', 'footer');
@@ -42,22 +52,18 @@ class WP_Visitor_Stats_Display {
         switch ($position) {
             case 'header_left':
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_left'), 10, 2);
-                // Fallback if menu filter doesn't work
                 add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'header_right':
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_right'), 10, 2);
-                // Fallback if menu filter doesn't work
                 add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'header_center':
                 add_action('wp_body_open', array($this, 'output_stats_center'));
-                // Fallback if wp_body_open not supported
                 add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'before_content':
                 add_action('the_content', array($this, 'output_stats_before_content'), 1);
-                // Fallback if no content
                 add_action('wp_footer', array($this, 'output_stats_footer'), 999);
                 break;
             case 'footer':
@@ -203,10 +209,9 @@ class WP_Visitor_Stats_Display {
             // Get HTML - this function handles all permission checks
             $html = $this->get_stats_html();
             
-            // Only display if HTML is not empty
+            // Display HTML
             if (!empty($html)) {
-                // Wrapper with inline styles to ensure visibility on all devices
-                echo '<div id="wp-visitor-stats-wrapper" style="display: block; visibility: visible; opacity: 1; width: 100%; margin: 0; padding: 0; position: relative; z-index: 9999;">' . $html . '</div>';
+                echo '<div id="wp-visitor-stats-wrapper">' . $html . '</div>';
                 $displayed = true;
             }
         }
@@ -218,28 +223,8 @@ class WP_Visitor_Stats_Display {
      */
     public function get_stats_html() {
         try {
-            // Check if we should show stats
-            $track_all = get_option('wp_visitor_stats_track_all', false);
-            
-            // If track_all is enabled, always show stats to everyone
-            if ($track_all === true || $track_all === '1' || $track_all === 1) {
-                // Always generate HTML - track_all means show to everyone
-            } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
-                // track_all is explicitly disabled - check permissions
-                if (!$this->db->can_see_stats()) {
-                    // User can't see stats - return empty
-                    return '';
-                }
-            } else {
-                // track_all option not set (null) - default to showing to everyone for backward compatibility
-                // Always generate HTML
-            }
-            
-            // Generate stats HTML - we reach here if:
-            // - track_all is enabled, OR
-            // - track_all is disabled but user has permissions, OR
-            // - track_all is not set (null) - backward compatibility
-            
+            // Simple: if we reach here, we should show stats (permissions already checked in init())
+            // Just generate the HTML
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
             $color_scheme = get_option('wp_visitor_stats_color', 'blue');
