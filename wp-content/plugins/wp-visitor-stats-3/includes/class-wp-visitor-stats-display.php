@@ -204,11 +204,32 @@ class WP_Visitor_Stats_Display {
         static $displayed = false;
         // Only display once to avoid duplicates
         if (!$displayed && !is_admin()) {
+            // Check if we should display stats
+            $enabled = get_option('wp_visitor_stats_enabled', true);
+            $track_all = get_option('wp_visitor_stats_track_all', false);
+            
+            // If disabled, don't show
+            if ($enabled === false || $enabled === '0' || $enabled === 0) {
+                return;
+            }
+            
+            // If track_all is enabled, always show stats
+            $should_show = false;
+            if ($track_all === true || $track_all === '1' || $track_all === 1) {
+                $should_show = true;
+            } else {
+                // Check if user can see stats (cookie or IP)
+                $should_show = $this->db->can_see_stats();
+            }
+            
+            // Always try to get HTML (even if should_show is false, to allow JS to handle it)
             $html = $this->get_stats_html();
-            if (!empty($html)) {
+            
+            // If we should show or HTML is not empty (contains hidden div for JS), display it
+            if ($should_show || !empty($html)) {
                 // Add mobile-friendly wrapper with inline styles for better compatibility
                 // Also add JavaScript to verify cookie and force display if needed
-                echo '<div id="wp-visitor-stats-wrapper" style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important; width: 100%;">' . $html . '</div>';
+                echo '<div id="wp-visitor-stats-wrapper" style="display: block !important; visibility: visible !important; opacity: 1 !important; position: relative !important; z-index: 9999 !important; width: 100%; margin: 0; padding: 0;">' . $html . '</div>';
                 
                 // Add JavaScript to verify cookie on client side and ensure visibility
                 $saved_token = get_option('wp_visitor_stats_cookie_token', '');
@@ -220,12 +241,21 @@ class WP_Visitor_Stats_Display {
                         function getCookie(name) {
                             var value = "; " + document.cookie;
                             var parts = value.split("; " + name + "=");
-                            if (parts.length === 2) return parts.pop().split(";").shift();
+                            if (parts.length === 2) return decodeURIComponent(parts.pop().split(";").shift());
                             return null;
                         }
                         
                         var cookieValue = getCookie('wp_visitor_stats_token');
                         var savedToken = '<?php echo esc_js($saved_token); ?>';
+                        var trackAll = <?php echo ($track_all === true || $track_all === '1' || $track_all === 1) ? 'true' : 'false'; ?>;
+                        
+                        // If track_all is enabled, always show stats
+                        var shouldShow = trackAll;
+                        
+                        // If cookie exists and matches, show stats
+                        if (!shouldShow && cookieValue === savedToken) {
+                            shouldShow = true;
+                        }
                         
                         // If cookie doesn't exist but should, try to set it from URL parameter
                         if (!cookieValue && savedToken) {
@@ -235,11 +265,51 @@ class WP_Visitor_Stats_Display {
                                 // Set cookie via JavaScript
                                 var expires = new Date();
                                 expires.setTime(expires.getTime() + (365 * 24 * 60 * 60 * 1000));
-                                document.cookie = 'wp_visitor_stats_token=' + encodeURIComponent(savedToken) + '; expires=' + expires.toUTCString() + '; path=/; SameSite=Lax<?php echo is_ssl() ? '; secure' : ''; ?>';
+                                var isSecure = window.location.protocol === 'https:';
+                                document.cookie = 'wp_visitor_stats_token=' + encodeURIComponent(savedToken) + 
+                                    '; expires=' + expires.toUTCString() + 
+                                    '; path=/' + 
+                                    '; SameSite=Lax' + 
+                                    (isSecure ? '; secure' : '');
+                                shouldShow = true;
+                                
+                                // Reload page to show stats
+                                setTimeout(function() {
+                                    var currentUrl = window.location.href;
+                                    var urlParts = currentUrl.split('?');
+                                    var baseUrl = urlParts[0];
+                                    var queryString = urlParts[1] || '';
+                                    if (queryString) {
+                                        var params = new URLSearchParams(queryString);
+                                        params.delete('wp_visitor_stats_token');
+                                        var newQuery = params.toString();
+                                        baseUrl = baseUrl + (newQuery ? '?' + newQuery : '');
+                                    }
+                                    window.location.href = baseUrl;
+                                }, 500);
                             }
                         }
                         
                         // Ensure stats wrapper is visible
+                        var wrapper = document.getElementById('wp-visitor-stats-wrapper');
+                        if (wrapper) {
+                            if (shouldShow) {
+                                wrapper.style.display = 'block';
+                                wrapper.style.visibility = 'visible';
+                                wrapper.style.opacity = '1';
+                            } else {
+                                // Hide if shouldn't show
+                                wrapper.style.display = 'none';
+                            }
+                        }
+                    })();
+                    </script>
+                    <?php
+                } else if ($track_all === true || $track_all === '1' || $track_all === 1) {
+                    // If track_all is enabled but no token, just ensure visibility
+                    ?>
+                    <script>
+                    (function() {
                         var wrapper = document.getElementById('wp-visitor-stats-wrapper');
                         if (wrapper) {
                             wrapper.style.display = 'block';
