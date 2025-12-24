@@ -43,41 +43,29 @@ class WP_Visitor_Stats_Display {
         }
         
         // Add display to header based on position
-        $position = get_option('wp_visitor_stats_position', 'header_right');
+        $position = get_option('wp_visitor_stats_position', 'footer');
         
+        // Always add CSS
+        add_action('wp_head', array($this, 'output_css'), 1);
+        
+        // Add display based on position - ONE method only, no fallbacks
         switch ($position) {
             case 'header_left':
-                add_action('wp_head', array($this, 'output_css'), 1);
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_left'), 10, 2);
-                // Fallback if menu filter doesn't work
-                add_action('wp_body_open', array($this, 'output_stats_center'), 5);
                 break;
             case 'header_right':
-                add_action('wp_head', array($this, 'output_css'), 1);
                 add_filter('wp_nav_menu_items', array($this, 'add_to_menu_right'), 10, 2);
-                // Fallback if menu filter doesn't work
-                add_action('wp_body_open', array($this, 'output_stats_center'), 5);
                 break;
             case 'header_center':
-                add_action('wp_head', array($this, 'output_css'), 1);
                 add_action('wp_body_open', array($this, 'output_stats_center'));
                 break;
             case 'before_content':
-                add_action('wp_head', array($this, 'output_css'), 1);
                 add_action('the_content', array($this, 'output_stats_before_content'), 1);
                 break;
+            case 'footer':
             default:
-                add_action('wp_head', array($this, 'output_css'), 1);
                 add_action('wp_footer', array($this, 'output_stats_footer'));
-        }
-        
-        // Always add to footer as backup if other methods fail (with lower priority)
-        // This ensures stats are always visible somewhere on the page
-        add_action('wp_footer', array($this, 'output_stats_footer_backup'), 999);
-        
-        // Also add to wp_head as last resort (will appear at top of page) - only if track_all is enabled
-        if ($track_all === true || $track_all === '1' || $track_all === 1) {
-            add_action('wp_head', array($this, 'output_stats_head'), 999);
+                break;
         }
         
         // Enqueue scripts
@@ -201,36 +189,6 @@ class WP_Visitor_Stats_Display {
         }
     }
     
-    /**
-     * Output stats in footer (backup method)
-     */
-    public function output_stats_footer_backup() {
-        static $displayed = false;
-        // Only display if not already displayed by other methods and not in admin
-        if (!$displayed && !is_admin()) {
-            $html = $this->get_stats_html();
-            if (!empty($html)) {
-                // Wrap in a container that won't interfere with page layout
-                echo '<div style="position: fixed; bottom: 10px; right: 10px; z-index: 999998; max-width: 300px;">' . $html . '</div>';
-                $displayed = true;
-            }
-        }
-    }
-    
-    /**
-     * Output stats in head (last resort - will appear at top)
-     */
-    public function output_stats_head() {
-        static $displayed = false;
-        // Only display if not already displayed and not in admin
-        if (!$displayed && !is_admin()) {
-            $html = $this->get_stats_html();
-            if (!empty($html)) {
-                echo '<div style="position: fixed; top: 0; right: 0; z-index: 999999; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">' . $html . '</div>';
-                $displayed = true;
-            }
-        }
-    }
     
     /**
      * Get stats HTML (public for shortcode)
