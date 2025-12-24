@@ -40,7 +40,13 @@ $periods = array(
                         <option value="<?php echo esc_attr($c->country_code); ?>" <?php selected($country_code, $c->country_code); ?>>
                             <?php echo esc_html($c->country_name); ?>
                         </option>
-                    <?php endforeach; ?>
+                    <?php 
+                            endforeach;
+                        }
+                    } catch (Exception $e) {
+                        // Silently fail - countries list is optional
+                    }
+                    ?>
                 </select>
             </label>
             <button type="submit" class="button"><?php _e('Filter', 'wp-visitor-stats'); ?></button>
@@ -117,5 +123,3 @@ $periods = array(
         <?php endif; ?>
     </table>
 </div>
-
-
