@@ -79,8 +79,8 @@ class WP_Visitor_Stats_Admin {
         
         add_submenu_page(
             'wp-visitor-stats',
-            __('Cache Configuration Help', 'wp-visitor-stats'),
-            __('Cache Help', 'wp-visitor-stats'),
+            __('Cache Configuration', 'wp-visitor-stats'),
+            __('Cache Configuration', 'wp-visitor-stats'),
             'manage_options',
             'wp-visitor-stats-cache-help',
             array($this, 'render_cache_help_page')
@@ -333,7 +333,7 @@ class WP_Visitor_Stats_Admin {
         }
         
         if (!file_exists($help_file)) {
-            echo '<div class="wrap"><h1>' . __('Cache Configuration Help', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="wrap"><h1>' . __('Cache Configuration', 'wp-visitor-stats') . '</h1>';
             echo '<div class="notice notice-error"><p>' . __('Help file not found.', 'wp-visitor-stats') . '</p></div></div>';
             return;
         }
@@ -345,7 +345,7 @@ class WP_Visitor_Stats_Admin {
         
         ?>
         <div class="wrap">
-            <h1><?php _e('Cache Configuration Help', 'wp-visitor-stats'); ?></h1>
+            <h1><?php _e('Cache Configuration', 'wp-visitor-stats'); ?></h1>
             <div class="wp-visitor-stats-help-content" style="background: #fff; padding: 20px; border: 1px solid #ddd; margin: 20px 0; max-width: 1200px;">
                 <?php echo wp_kses_post($content); ?>
             </div>
