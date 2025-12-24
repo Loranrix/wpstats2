@@ -222,11 +222,21 @@ class WP_Visitor_Stats_DB {
     public function clean_online_users() {
         global $wpdb;
         
+        // Clean old users
         $wpdb->query($wpdb->prepare(
             "DELETE FROM {$this->table_online} 
             WHERE last_seen < DATE_SUB(NOW(), INTERVAL %d MINUTE)",
             5
         ));
+        
+        // Also remove excluded IPs from online table
+        $excluded_ips = $this->get_excluded_ips();
+        if (!empty($excluded_ips)) {
+            $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
+            $query = "DELETE FROM {$this->table_online} WHERE ip_address IN ($placeholders)";
+            $prepared = $wpdb->prepare($query, $excluded_ips);
+            $wpdb->query($prepared);
+        }
     }
     
     /**
@@ -245,7 +255,19 @@ class WP_Visitor_Stats_DB {
         // Clean old users first
         $this->clean_online_users();
         
-        return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_online}");
+        // Get excluded IPs
+        $excluded_ips = $this->get_excluded_ips();
+        
+        if (empty($excluded_ips)) {
+            return (int) $wpdb->get_var("SELECT COUNT(*) FROM {$this->table_online}");
+        }
+        
+        // Count excluding excluded IPs
+        $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
+        $query = "SELECT COUNT(*) FROM {$this->table_online} WHERE ip_address NOT IN ($placeholders)";
+        $prepared = $wpdb->prepare($query, $excluded_ips);
+        
+        return (int) $wpdb->get_var($prepared);
     }
     
     /**
