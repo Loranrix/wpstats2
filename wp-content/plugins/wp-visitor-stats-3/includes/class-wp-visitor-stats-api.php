@@ -53,7 +53,18 @@ class WP_Visitor_Stats_API {
                 
                 // PHP 7.3+ supports array format
                 if (PHP_VERSION_ID >= 70300) {
-                    setcookie('wp_visitor_stats_token', $token, $cookie_params);
+                    $cookie_set = setcookie('wp_visitor_stats_token', $token, $cookie_params);
+                    // If setcookie fails, try header method as fallback
+                    if (!$cookie_set) {
+                        $cookie_string = 'wp_visitor_stats_token=' . urlencode($token);
+                        $cookie_string .= '; expires=' . gmdate('D, d M Y H:i:s \G\M\T', $cookie_params['expires']);
+                        $cookie_string .= '; path=' . $cookie_params['path'];
+                        if ($cookie_params['secure']) {
+                            $cookie_string .= '; secure';
+                        }
+                        $cookie_string .= '; SameSite=' . $cookie_params['samesite'];
+                        header('Set-Cookie: ' . $cookie_string, false);
+                    }
                 } else {
                     // Fallback for older PHP versions
                     $cookie_string = 'wp_visitor_stats_token=' . urlencode($token);
@@ -64,6 +75,11 @@ class WP_Visitor_Stats_API {
                     }
                     $cookie_string .= '; SameSite=' . $cookie_params['samesite'];
                     header('Set-Cookie: ' . $cookie_string, false);
+                }
+                
+                // Log for debugging (only if WP_DEBUG is enabled)
+                if (defined('WP_DEBUG') && WP_DEBUG) {
+                    error_log('WP Visitor Stats: Cookie set via PHP. Token: ' . substr($token, 0, 10) . '... HTTPS: ' . ($is_https ? 'yes' : 'no'));
                 }
                 
                 // Show confirmation page with JavaScript to set cookie
