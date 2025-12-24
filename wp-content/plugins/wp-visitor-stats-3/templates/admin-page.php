@@ -119,13 +119,36 @@ $cookie_token = get_option('wp_visitor_stats_cookie_token', '');
         <h2><?php _e('Cookie Access Link', 'wp-visitor-stats'); ?></h2>
         <p><?php _e('Generate a link that can be opened on a smartphone to grant access via cookie (valid for 1 year).', 'wp-visitor-stats'); ?></p>
         
-        <button type="button" id="generate-cookie-link" class="button button-primary"><?php _e('Generate Cookie Link', 'wp-visitor-stats'); ?></button>
-        
-        <div id="cookie-link-result" style="margin-top: 15px; display: none;">
-            <p><strong><?php _e('Cookie Link:', 'wp-visitor-stats'); ?></strong></p>
-            <input type="text" id="cookie-link-url" class="large-text" readonly>
-            <button type="button" id="copy-cookie-link" class="button"><?php _e('Copy Link', 'wp-visitor-stats'); ?></button>
-        </div>
+        <?php if (!empty($cookie_token)): ?>
+            <?php 
+            $cookie_link = home_url('/?wp_visitor_stats_token=' . urlencode($cookie_token));
+            ?>
+            <div id="cookie-link-result" style="margin-top: 15px; background: #f0f6fc; padding: 15px; border-left: 4px solid #2271b1; border-radius: 4px;">
+                <p><strong><?php _e('Cookie Access Link (Active):', 'wp-visitor-stats'); ?></strong></p>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="text" id="cookie-link-url" value="<?php echo esc_attr($cookie_link); ?>" class="large-text" readonly style="flex: 1;">
+                    <button type="button" id="copy-cookie-link" class="button button-primary"><?php _e('Copy Link', 'wp-visitor-stats'); ?></button>
+                    <a href="<?php echo esc_url($cookie_link); ?>" target="_blank" class="button"><?php _e('Open Link', 'wp-visitor-stats'); ?></a>
+                </div>
+                <p style="margin-top: 10px; color: #666; font-size: 13px;">
+                    <?php _e('Click "Open Link" to test the cookie access, or copy the link and open it on your mobile device.', 'wp-visitor-stats'); ?>
+                </p>
+            </div>
+            <p style="margin-top: 15px;">
+                <button type="button" id="regenerate-cookie-link" class="button"><?php _e('Regenerate New Link', 'wp-visitor-stats'); ?></button>
+            </p>
+        <?php else: ?>
+            <button type="button" id="generate-cookie-link" class="button button-primary"><?php _e('Generate Cookie Link', 'wp-visitor-stats'); ?></button>
+            
+            <div id="cookie-link-result" style="margin-top: 15px; display: none;">
+                <p><strong><?php _e('Cookie Link:', 'wp-visitor-stats'); ?></strong></p>
+                <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
+                    <input type="text" id="cookie-link-url" class="large-text" readonly style="flex: 1;">
+                    <button type="button" id="copy-cookie-link" class="button button-primary"><?php _e('Copy Link', 'wp-visitor-stats'); ?></button>
+                    <a href="#" id="open-cookie-link" target="_blank" class="button" style="display: none;"><?php _e('Open Link', 'wp-visitor-stats'); ?></a>
+                </div>
+            </div>
+        <?php endif; ?>
         
         <p class="submit">
             <input type="submit" name="wp_visitor_stats_save" class="button button-primary" value="<?php _e('Save Changes', 'wp-visitor-stats'); ?>">
@@ -135,7 +158,12 @@ $cookie_token = get_option('wp_visitor_stats_cookie_token', '');
 
 <script>
 jQuery(document).ready(function($) {
-    $('#generate-cookie-link').on('click', function() {
+    // Generate new cookie link
+    $('#generate-cookie-link, #regenerate-cookie-link').on('click', function() {
+        var $button = $(this);
+        var originalText = $button.text();
+        $button.prop('disabled', true).text('<?php _e('Generating...', 'wp-visitor-stats'); ?>');
+        
         $.ajax({
             url: ajaxurl,
             type: 'POST',
@@ -147,15 +175,43 @@ jQuery(document).ready(function($) {
                 if (response.success) {
                     $('#cookie-link-url').val(response.data.url);
                     $('#cookie-link-result').show();
+                    $('#open-cookie-link').attr('href', response.data.url).show();
+                    
+                    // If regenerating, reload page to show new link
+                    if ($button.attr('id') === 'regenerate-cookie-link') {
+                        alert('<?php _e('New cookie link generated! Page will reload.', 'wp-visitor-stats'); ?>');
+                        window.location.reload();
+                    }
+                } else {
+                    alert('<?php _e('Error generating cookie link.', 'wp-visitor-stats'); ?>');
                 }
+                $button.prop('disabled', false).text(originalText);
+            },
+            error: function() {
+                alert('<?php _e('Error generating cookie link.', 'wp-visitor-stats'); ?>');
+                $button.prop('disabled', false).text(originalText);
             }
         });
     });
     
+    // Copy cookie link to clipboard
     $('#copy-cookie-link').on('click', function() {
-        $('#cookie-link-url').select();
-        document.execCommand('copy');
-        alert('<?php _e('Link copied to clipboard!', 'wp-visitor-stats'); ?>');
+        var $input = $('#cookie-link-url');
+        $input.select();
+        $input[0].setSelectionRange(0, 99999); // For mobile devices
+        
+        try {
+            document.execCommand('copy');
+            var $button = $(this);
+            var originalText = $button.text();
+            $button.text('<?php _e('Copied!', 'wp-visitor-stats'); ?>');
+            setTimeout(function() {
+                $button.text(originalText);
+            }, 2000);
+        } catch (err) {
+            // Fallback: select text for manual copy
+            alert('<?php _e('Please copy the link manually:', 'wp-visitor-stats'); ?>\n' + $input.val());
+        }
     });
 });
 </script>
