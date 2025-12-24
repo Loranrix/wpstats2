@@ -297,9 +297,23 @@ class WP_Visitor_Stats_Display {
                                 wrapper.style.display = 'block';
                                 wrapper.style.visibility = 'visible';
                                 wrapper.style.opacity = '1';
+                                // Force all child elements to be visible
+                                var statsContainer = wrapper.querySelector('.wp-visitor-stats-container');
+                                if (statsContainer) {
+                                    statsContainer.style.display = 'inline-flex';
+                                    statsContainer.style.visibility = 'visible';
+                                    statsContainer.style.opacity = '1';
+                                }
                             } else {
-                                // Hide if shouldn't show
-                                wrapper.style.display = 'none';
+                                // Only hide if track_all is disabled AND cookie doesn't exist
+                                if (!trackAll && !cookieValue) {
+                                    wrapper.style.display = 'none';
+                                } else {
+                                    // Show if track_all or cookie exists
+                                    wrapper.style.display = 'block';
+                                    wrapper.style.visibility = 'visible';
+                                    wrapper.style.opacity = '1';
+                                }
                             }
                         }
                     })();
@@ -331,27 +345,32 @@ class WP_Visitor_Stats_Display {
      */
     public function get_stats_html() {
         try {
-            // Double-check permissions here (in case cookie was set via JavaScript)
+            // Check if track_all is enabled - if so, always generate stats HTML
             $track_all = get_option('wp_visitor_stats_track_all', false);
-            if ($track_all !== true && $track_all !== '1' && $track_all !== 1) {
+            $can_see = false;
+            
+            if ($track_all === true || $track_all === '1' || $track_all === 1) {
+                // track_all is enabled - always show stats to everyone
+                $can_see = true;
+            } else {
                 // track_all is disabled, need to check permissions
                 // Use enhanced cookie detection
-                if (!$this->db->can_see_stats()) {
-                    // Return a hidden div that JavaScript can use to set cookie and refresh
+                $can_see = $this->db->can_see_stats();
+                
+                // If can't see but token exists, we'll still generate HTML
+                // JavaScript will handle showing/hiding based on cookie
+                if (!$can_see) {
                     $saved_token = get_option('wp_visitor_stats_cookie_token', '');
-                    if (!empty($saved_token)) {
-                        // Check URL parameter as fallback
-                        $url_token = isset($_GET['wp_visitor_stats_token']) ? sanitize_text_field($_GET['wp_visitor_stats_token']) : '';
-                        $has_url_token = ($url_token === $saved_token);
-                        
-                        // Add a data attribute that JavaScript can check
-                        // If token is in URL, mark it so JS can set cookie immediately
-                        return '<div id="wp-visitor-stats-hidden" data-token-check="' . esc_attr($saved_token) . '" data-has-url-token="' . ($has_url_token ? '1' : '0') . '" style="display: none !important; visibility: hidden !important;"></div>';
+                    if (empty($saved_token)) {
+                        // No token in DB - return empty (user needs to generate cookie link)
+                        return '';
                     }
-                    // No token in DB - return empty (user needs to generate cookie link)
-                    return '';
+                    // Token exists but can't see - we'll generate HTML anyway
+                    // JavaScript will show it if cookie is set
                 }
             }
+            
+            // Always generate stats HTML if we reach here (track_all enabled OR can_see OR token exists)
             
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
