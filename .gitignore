@@ -1,0 +1,21 @@
+# Backup archives
+*.tar.gz
+*.zip
+wpstats_backup.tar.gz
+wordpress-*.zip
+
+# Logs
+*.log
+debug.log
+
+# WordPress
+wp-config.php
+wp-config.php.backup
+
+# Node modules
+node_modules
+
+# Environment
+.env
+.env.local
+
