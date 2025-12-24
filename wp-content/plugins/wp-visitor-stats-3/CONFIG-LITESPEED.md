@@ -56,3 +56,4 @@ Après configuration, testez :
 2. Les statistiques devraient se mettre à jour en temps réel
 3. Le compteur "Online Now" devrait fonctionner correctement
 
+

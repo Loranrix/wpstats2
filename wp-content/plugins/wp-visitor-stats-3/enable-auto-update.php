@@ -23,3 +23,4 @@ if (!in_array($plugin_file, $auto_updates)) {
 echo "Plugin file: $plugin_file\n";
 echo "In auto-update list: " . (in_array($plugin_file, $auto_updates) ? "YES" : "NO") . "\n";
 
+

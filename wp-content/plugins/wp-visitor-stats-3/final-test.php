@@ -74,3 +74,4 @@ $test_results['tests']['dashboard'] = array(
 header('Content-Type: application/json');
 echo json_encode($test_results, JSON_PRETTY_PRINT);
 
+

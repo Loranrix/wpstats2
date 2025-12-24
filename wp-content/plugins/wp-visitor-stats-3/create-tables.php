@@ -24,3 +24,4 @@ foreach ($tables as $table) {
     echo "$table: " . ($exists ? "EXISTS" : "MISSING") . "\n";
 }
 
+

@@ -53,3 +53,4 @@ $results['auto_update_enabled'] = in_array($plugin_file, $auto_updates);
 header('Content-Type: application/json');
 echo json_encode($results, JSON_PRETTY_PRINT);
 
+
