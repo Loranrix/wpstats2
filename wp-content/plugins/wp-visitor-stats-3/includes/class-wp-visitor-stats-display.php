@@ -28,14 +28,18 @@ class WP_Visitor_Stats_Display {
             return;
         }
         
-        // If track_all is enabled, show stats to everyone
+        // Default behavior: if enabled but track_all not set, show to everyone (backward compatibility)
+        // If track_all is explicitly enabled, show stats to everyone
         if ($track_all === true || $track_all === '1' || $track_all === 1) {
-            // Show to everyone
-        } else {
-            // Check if user can see stats (IP authorized or cookie valid)
+            // Show to everyone - continue
+        } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
+            // track_all is explicitly disabled, check permissions
             if (!$this->db->can_see_stats()) {
                 return;
             }
+        } else {
+            // track_all option not set (null), default to showing to everyone if enabled
+            // This ensures backward compatibility
         }
         
         // Add display to header based on position

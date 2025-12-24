@@ -33,6 +33,7 @@ class WP_Visitor_Stats_Dashboard {
             return;
         }
         
+        // Add widget with proper context and priority for drag & drop
         wp_add_dashboard_widget(
             'wp_visitor_stats_dashboard',
             __('Visitor Statistics', 'wp-visitor-stats'),
@@ -43,9 +44,11 @@ class WP_Visitor_Stats_Dashboard {
             'high'
         );
         
-        // Ensure widget is sortable and movable
+        // Force widget to be sortable by ensuring it's in the correct meta box structure
         global $wp_meta_boxes;
-        if (isset($wp_meta_boxes['dashboard']['normal']['high']['wp_visitor_stats_dashboard'])) {
+        $dashboard = $wp_meta_boxes['dashboard']['normal']['high'];
+        if (isset($dashboard['wp_visitor_stats_dashboard'])) {
+            // Ensure widget has no special args that would prevent sorting
             $wp_meta_boxes['dashboard']['normal']['high']['wp_visitor_stats_dashboard']['args'] = array();
         }
     }
@@ -54,18 +57,27 @@ class WP_Visitor_Stats_Dashboard {
      * Render dashboard widget
      */
     public function render_dashboard_widget() {
-        $stats = array(
-            'today' => $this->db->get_unique_visitor_count('today'),
-            'week' => $this->db->get_unique_visitor_count('week'),
-            'month' => $this->db->get_unique_visitor_count('month'),
-            'year' => $this->db->get_unique_visitor_count('year'),
-            'online' => $this->db->get_online_count()
-        );
-        
-        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-        $top_countries = $geolocation->get_visitors_by_country('today');
-        $top_cities = $geolocation->get_visitors_by_city('today');
+        try {
+            $stats = array(
+                'today' => (int) $this->db->get_unique_visitor_count('today'),
+                'week' => (int) $this->db->get_unique_visitor_count('week'),
+                'month' => (int) $this->db->get_unique_visitor_count('month'),
+                'year' => (int) $this->db->get_unique_visitor_count('year'),
+                'online' => (int) $this->db->get_online_count()
+            );
+            
+            $top_countries = array();
+            $top_cities = array();
+            
+            try {
+                require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+                $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+                $top_countries = $geolocation->get_visitors_by_country('today');
+                $top_cities = $geolocation->get_visitors_by_city('today');
+            } catch (Exception $e) {
+                error_log('WP Visitor Stats - Error loading geolocation in dashboard: ' . $e->getMessage());
+                // Continue without geolocation data
+            }
         
         ?>
         <div id="wp-visitor-stats-dashboard-content">
@@ -251,6 +263,10 @@ class WP_Visitor_Stats_Dashboard {
             </script>
         </div>
         <?php
+        } catch (Exception $e) {
+            echo '<div class="error"><p><strong>' . __('Error loading widget:', 'wp-visitor-stats') . '</strong> ' . esc_html($e->getMessage()) . '</p></div>';
+            error_log('WP Visitor Stats - Error in render_dashboard_widget: ' . $e->getMessage());
+        }
     }
     
     /**
