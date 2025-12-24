@@ -28,16 +28,22 @@ class WP_Visitor_Stats_Display {
             return;
         }
         
-        // Simple logic: if track_all is enabled OR user can see stats, add hooks
+        // Check if user has permissions to see stats
+        // track_all option: if enabled, show to everyone; if disabled, require permissions
         $should_show = false;
+        
         if ($track_all === true || $track_all === '1' || $track_all === 1) {
+            // track_all is enabled - show to everyone
             $should_show = true;
+        } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
+            // track_all is explicitly disabled - require permissions (cookie or IP)
+            $should_show = $this->db->can_see_stats();
         } else {
-            // Check permissions
+            // track_all is not set (null) - default to requiring permissions for security
             $should_show = $this->db->can_see_stats();
         }
         
-        // If shouldn't show, don't add hooks
+        // If user doesn't have permissions, don't add hooks
         if (!$should_show) {
             return;
         }
