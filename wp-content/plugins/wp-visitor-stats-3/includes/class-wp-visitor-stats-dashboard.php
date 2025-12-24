@@ -42,6 +42,12 @@ class WP_Visitor_Stats_Dashboard {
             'normal',
             'high'
         );
+        
+        // Ensure widget is sortable and movable
+        global $wp_meta_boxes;
+        if (isset($wp_meta_boxes['dashboard']['normal']['high']['wp_visitor_stats_dashboard'])) {
+            $wp_meta_boxes['dashboard']['normal']['high']['wp_visitor_stats_dashboard']['args'] = array();
+        }
     }
     
     /**

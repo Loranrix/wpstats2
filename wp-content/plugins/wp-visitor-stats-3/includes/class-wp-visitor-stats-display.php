@@ -72,8 +72,10 @@ class WP_Visitor_Stats_Display {
             add_action('wp_footer', array($this, 'output_stats_footer_backup'), 999);
         }
         
-        // Also add to wp_head as last resort (will appear at top of page)
-        add_action('wp_head', array($this, 'output_stats_head'), 999);
+        // Also add to wp_head as last resort (will appear at top of page) - only if track_all is enabled
+        if ($track_all === true || $track_all === '1' || $track_all === 1) {
+            add_action('wp_head', array($this, 'output_stats_head'), 999);
+        }
         
         // Enqueue scripts
         add_action('wp_enqueue_scripts', array($this, 'enqueue_scripts'));
@@ -216,11 +218,11 @@ class WP_Visitor_Stats_Display {
      */
     public function output_stats_head() {
         static $displayed = false;
-        // Only display if not already displayed
-        if (!$displayed) {
+        // Only display if not already displayed and not in admin
+        if (!$displayed && !is_admin()) {
             $html = $this->get_stats_html();
             if (!empty($html)) {
-                echo '<div style="position: fixed; top: 0; right: 0; z-index: 999999; background: white; padding: 10px; border: 1px solid #ccc;">' . $html . '</div>';
+                echo '<div style="position: fixed; top: 0; right: 0; z-index: 999999; background: white; padding: 10px; border: 1px solid #ccc; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">' . $html . '</div>';
                 $displayed = true;
             }
         }

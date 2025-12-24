@@ -130,43 +130,51 @@ class WP_Visitor_Stats_Geolocation {
     public function get_visitors_by_country($period = 'all') {
         global $wpdb;
         
-        $excluded_ips = $this->db->get_excluded_ips();
-        $excluded_ips_placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
-        
-        $where_date = '';
-        if ($period === 'today') {
-            $where_date = "AND v.visit_date = CURDATE()";
-        } elseif ($period === 'week') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
-        } elseif ($period === 'month') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
-        } elseif ($period === 'year') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)";
+        try {
+            $excluded_ips = $this->db->get_excluded_ips();
+            
+            $where_date = '';
+            if ($period === 'today') {
+                $where_date = "AND v.visit_date = CURDATE()";
+            } elseif ($period === 'week') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            } elseif ($period === 'month') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+            } elseif ($period === 'year') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)";
+            }
+            
+            $params = array();
+            $excluded_condition = '';
+            if (!empty($excluded_ips)) {
+                $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
+                $excluded_condition = "AND v.ip_address NOT IN ($placeholders)";
+                $params = $excluded_ips;
+            }
+            
+            $query = "SELECT 
+                l.country_code,
+                l.country_name,
+                COUNT(DISTINCT v.ip_address) as unique_visitors,
+                COUNT(v.id) as total_visits
+            FROM {$this->db->table_visits} v
+            LEFT JOIN {$this->db->table_locations} l ON v.ip_address = l.ip_address
+            WHERE l.country_code IS NOT NULL AND l.country_code != '' $where_date $excluded_condition
+            GROUP BY l.country_code, l.country_name
+            ORDER BY unique_visitors DESC";
+            
+            if (!empty($params)) {
+                $prepared = $wpdb->prepare($query, $params);
+            } else {
+                $prepared = $query;
+            }
+            
+            $results = $wpdb->get_results($prepared);
+            return $results ? $results : array();
+        } catch (Exception $e) {
+            error_log('WP Visitor Stats - Error in get_visitors_by_country: ' . $e->getMessage());
+            return array();
         }
-        
-        $excluded_condition = '';
-        if (!empty($excluded_ips)) {
-            $excluded_condition = "AND v.ip_address NOT IN ($excluded_ips_placeholders)";
-        }
-        
-        $query = "SELECT 
-            l.country_code,
-            l.country_name,
-            COUNT(DISTINCT v.ip_address) as unique_visitors,
-            COUNT(v.id) as total_visits
-        FROM {$this->db->table_visits} v
-        LEFT JOIN {$this->db->table_locations} l ON v.ip_address = l.ip_address
-        WHERE l.country_code IS NOT NULL $where_date $excluded_condition
-        GROUP BY l.country_code, l.country_name
-        ORDER BY unique_visitors DESC";
-        
-        if (!empty($excluded_ips)) {
-            $prepared = $wpdb->prepare($query, $excluded_ips);
-        } else {
-            $prepared = $query;
-        }
-        
-        return $wpdb->get_results($prepared);
     }
     
     /**
@@ -175,69 +183,64 @@ class WP_Visitor_Stats_Geolocation {
     public function get_visitors_by_city($period = 'all', $country_code = '') {
         global $wpdb;
         
-        $excluded_ips = $this->db->get_excluded_ips();
-        $excluded_ips_placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
-        
-        $where_date = '';
-        if ($period === 'today') {
-            $where_date = "AND v.visit_date = CURDATE()";
-        } elseif ($period === 'week') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
-        } elseif ($period === 'month') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
-        } elseif ($period === 'year') {
-            $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)";
+        try {
+            $excluded_ips = $this->db->get_excluded_ips();
+            
+            $where_date = '';
+            if ($period === 'today') {
+                $where_date = "AND v.visit_date = CURDATE()";
+            } elseif ($period === 'week') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+            } elseif ($period === 'month') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+            } elseif ($period === 'year') {
+                $where_date = "AND v.visit_date >= DATE_SUB(CURDATE(), INTERVAL 365 DAY)";
+            }
+            
+            $params = array();
+            $query_parts = array();
+            
+            if (!empty($country_code)) {
+                $query_parts[] = "l.country_code = %s";
+                $params[] = $country_code;
+            }
+            
+            if (!empty($excluded_ips)) {
+                $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
+                $query_parts[] = "v.ip_address NOT IN ($placeholders)";
+                $params = array_merge($params, $excluded_ips);
+            }
+            
+            $where_additional = '';
+            if (!empty($query_parts)) {
+                $where_additional = 'AND ' . implode(' AND ', $query_parts);
+            }
+            
+            $query = "SELECT 
+                l.country_code,
+                l.country_name,
+                l.city,
+                COUNT(DISTINCT v.ip_address) as unique_visitors,
+                COUNT(v.id) as total_visits
+            FROM {$this->db->table_visits} v
+            LEFT JOIN {$this->db->table_locations} l ON v.ip_address = l.ip_address
+            WHERE l.city IS NOT NULL AND l.city != '' $where_date $where_additional
+            GROUP BY l.country_code, l.country_name, l.city
+            ORDER BY unique_visitors DESC
+            LIMIT 100";
+            
+            if (!empty($params)) {
+                $prepared = $wpdb->prepare($query, $params);
+            } else {
+                $prepared = $query;
+            }
+            
+            $results = $wpdb->get_results($prepared);
+            return $results ? $results : array();
+        } catch (Exception $e) {
+            error_log('WP Visitor Stats - Error in get_visitors_by_city: ' . $e->getMessage());
+            return array();
         }
-        
-        $where_country = '';
-        if (!empty($country_code)) {
-            $where_country = "AND l.country_code = %s";
-        }
-        
-        $excluded_condition = '';
-        if (!empty($excluded_ips)) {
-            $excluded_condition = "AND v.ip_address NOT IN ($excluded_ips_placeholders)";
-        }
-        
-        $params = array();
-        $query_parts = array();
-        
-        if (!empty($country_code)) {
-            $query_parts[] = "l.country_code = %s";
-            $params[] = $country_code;
-        }
-        
-        if (!empty($excluded_ips)) {
-            $placeholders = implode(',', array_fill(0, count($excluded_ips), '%s'));
-            $query_parts[] = "v.ip_address NOT IN ($placeholders)";
-            $params = array_merge($params, $excluded_ips);
-        }
-        
-        $where_additional = '';
-        if (!empty($query_parts)) {
-            $where_additional = 'AND ' . implode(' AND ', $query_parts);
-        }
-        
-        $query = "SELECT 
-            l.country_code,
-            l.country_name,
-            l.city,
-            COUNT(DISTINCT v.ip_address) as unique_visitors,
-            COUNT(v.id) as total_visits
-        FROM {$this->db->table_visits} v
-        LEFT JOIN {$this->db->table_locations} l ON v.ip_address = l.ip_address
-        WHERE l.city IS NOT NULL AND l.city != '' $where_date $where_additional
-        GROUP BY l.country_code, l.country_name, l.city
-        ORDER BY unique_visitors DESC
-        LIMIT 100";
-        
-        if (!empty($params)) {
-            $prepared = $wpdb->prepare($query, $params);
-        } else {
-            $prepared = $query;
-        }
-        
-        return $wpdb->get_results($prepared);
     }
 }
 

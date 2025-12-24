@@ -3,7 +3,7 @@
  * Plugin Name: WP Visitor Stats
  * Plugin URI: https://loranrix.com
  * Description: Beautiful visitor statistics display for WordPress. Shows daily, weekly, monthly, yearly visitors and real-time online users. Configurable display position, colors, and formats.
- * Version: 1.0.1
+ * Version: 1.0.2
  * Author: LoranRix
  * Author URI: https://loranrix.com
  * License: GPL v2 or later
@@ -14,6 +14,7 @@
  * Tested up to: 6.9
  * Requires PHP: 7.4
  * Update URI: https://loranrix.com/wp-visitor-stats
+ * Network: false
  */
 
 // Exit if accessed directly
@@ -22,7 +23,7 @@ if (!defined('ABSPATH')) {
 }
 
 // Define plugin constants
-define('WP_VISITOR_STATS_VERSION', '1.0.1');
+define('WP_VISITOR_STATS_VERSION', '1.0.2');
 define('WP_VISITOR_STATS_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('WP_VISITOR_STATS_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('WP_VISITOR_STATS_PLUGIN_FILE', __FILE__);
@@ -115,6 +116,24 @@ class WP_Visitor_Stats {
         
         // Check for cache plugin conflicts
         add_action('admin_notices', array($this, 'check_cache_conflicts'));
+        
+        // Enable auto-updates
+        add_filter('plugin_auto_update_setting_html', array($this, 'enable_auto_updates'), 10, 3);
+    }
+    
+    /**
+     * Enable auto-updates for this plugin
+     */
+    public function enable_auto_updates($html, $plugin_file, $plugin_data) {
+        if ($plugin_file === plugin_basename(WP_VISITOR_STATS_PLUGIN_FILE)) {
+            // Force enable auto-updates
+            $auto_update = get_site_option('auto_update_plugins', array());
+            if (!in_array($plugin_file, $auto_update)) {
+                $auto_update[] = $plugin_file;
+                update_site_option('auto_update_plugins', $auto_update);
+            }
+        }
+        return $html;
     }
     
     /**

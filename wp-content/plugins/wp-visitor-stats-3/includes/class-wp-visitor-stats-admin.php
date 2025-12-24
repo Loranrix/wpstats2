@@ -133,27 +133,51 @@ class WP_Visitor_Stats_Admin {
      * Render countries page
      */
     public function render_countries_page() {
-        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-        
-        $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
-        $countries = $geolocation->get_visitors_by_country($period);
-        
-        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-countries.php';
+        try {
+            require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+            $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+            
+            $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
+            $countries = $geolocation->get_visitors_by_country($period);
+            
+            $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-countries.php';
+            if (file_exists($template_file)) {
+                include $template_file;
+            } else {
+                echo '<div class="wrap"><h1>' . __('By Country', 'wp-visitor-stats') . '</h1>';
+                echo '<p>' . __('Template file not found.', 'wp-visitor-stats') . '</p></div>';
+            }
+        } catch (Exception $e) {
+            echo '<div class="wrap"><h1>' . __('By Country', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Error: ', 'wp-visitor-stats') . esc_html($e->getMessage()) . '</p></div></div>';
+            error_log('WP Visitor Stats - Error in render_countries_page: ' . $e->getMessage());
+        }
     }
     
     /**
      * Render cities page
      */
     public function render_cities_page() {
-        require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
-        $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
-        
-        $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
-        $country_code = isset($_GET['country']) ? sanitize_text_field($_GET['country']) : '';
-        $cities = $geolocation->get_visitors_by_city($period, $country_code);
-        
-        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-cities.php';
+        try {
+            require_once WP_VISITOR_STATS_PLUGIN_DIR . 'includes/class-wp-visitor-stats-geolocation.php';
+            $geolocation = new WP_Visitor_Stats_Geolocation($this->db);
+            
+            $period = isset($_GET['period']) ? sanitize_text_field($_GET['period']) : 'all';
+            $country_code = isset($_GET['country']) ? sanitize_text_field($_GET['country']) : '';
+            $cities = $geolocation->get_visitors_by_city($period, $country_code);
+            
+            $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/admin-cities.php';
+            if (file_exists($template_file)) {
+                include $template_file;
+            } else {
+                echo '<div class="wrap"><h1>' . __('By City', 'wp-visitor-stats') . '</h1>';
+                echo '<p>' . __('Template file not found.', 'wp-visitor-stats') . '</p></div>';
+            }
+        } catch (Exception $e) {
+            echo '<div class="wrap"><h1>' . __('By City', 'wp-visitor-stats') . '</h1>';
+            echo '<div class="notice notice-error"><p>' . __('Error: ', 'wp-visitor-stats') . esc_html($e->getMessage()) . '</p></div></div>';
+            error_log('WP Visitor Stats - Error in render_cities_page: ' . $e->getMessage());
+        }
     }
     
     /**
