@@ -28,19 +28,9 @@ class WP_Visitor_Stats_Display {
             return;
         }
         
-        // Default behavior: if enabled but track_all not set, show to everyone (backward compatibility)
-        // If track_all is explicitly enabled, show stats to everyone
-        if ($track_all === true || $track_all === '1' || $track_all === 1) {
-            // Show to everyone - continue
-        } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
-            // track_all is explicitly disabled, check permissions
-            // For mobile compatibility, we continue even if cookie not detected
-            // JavaScript will handle cookie setting and page refresh
-            // The actual check happens in get_stats_html() which is more robust
-        } else {
-            // track_all option not set (null), default to showing to everyone if enabled
-            // This ensures backward compatibility
-        }
+        // Check if we should add display hooks
+        // Always add hooks - get_stats_html() will handle permission checks
+        // This ensures stats can be displayed even if cookie is set via JavaScript
         
         // Add display to header based on position
         $position = get_option('wp_visitor_stats_position', 'footer');
@@ -231,18 +221,24 @@ class WP_Visitor_Stats_Display {
             // Check if we should show stats
             $track_all = get_option('wp_visitor_stats_track_all', false);
             
-            // If track_all is enabled, always show stats
+            // If track_all is enabled, always show stats to everyone
             if ($track_all === true || $track_all === '1' || $track_all === 1) {
                 // Always generate HTML - track_all means show to everyone
-            } else {
-                // track_all is disabled - check permissions
+            } elseif ($track_all === false || $track_all === '0' || $track_all === 0) {
+                // track_all is explicitly disabled - check permissions
                 if (!$this->db->can_see_stats()) {
                     // User can't see stats - return empty
                     return '';
                 }
+            } else {
+                // track_all option not set (null) - default to showing to everyone for backward compatibility
+                // Always generate HTML
             }
             
-            // Generate stats HTML - we reach here if track_all is enabled OR user has permissions
+            // Generate stats HTML - we reach here if:
+            // - track_all is enabled, OR
+            // - track_all is disabled but user has permissions, OR
+            // - track_all is not set (null) - backward compatibility
             
             $stats = $this->get_stats_data();
             $format = get_option('wp_visitor_stats_format', 'compact');
