@@ -117,23 +117,37 @@ class WP_Visitor_Stats {
         // Check for cache plugin conflicts
         add_action('admin_notices', array($this, 'check_cache_conflicts'));
         
-        // Enable auto-updates
-        add_filter('plugin_auto_update_setting_html', array($this, 'enable_auto_updates'), 10, 3);
+        // Enable auto-updates support
+        add_filter('auto_update_plugin', array($this, 'enable_auto_updates'), 10, 2);
+        add_action('admin_init', array($this, 'maybe_enable_auto_updates'));
     }
     
     /**
      * Enable auto-updates for this plugin
      */
-    public function enable_auto_updates($html, $plugin_file, $plugin_data) {
-        if ($plugin_file === plugin_basename(WP_VISITOR_STATS_PLUGIN_FILE)) {
-            // Force enable auto-updates
-            $auto_update = get_site_option('auto_update_plugins', array());
-            if (!in_array($plugin_file, $auto_update)) {
-                $auto_update[] = $plugin_file;
-                update_site_option('auto_update_plugins', $auto_update);
-            }
+    public function enable_auto_updates($update, $item) {
+        if (isset($item->plugin) && $item->plugin === plugin_basename(WP_VISITOR_STATS_PLUGIN_FILE)) {
+            return true;
         }
-        return $html;
+        return $update;
+    }
+    
+    /**
+     * Maybe enable auto-updates on admin init
+     */
+    public function maybe_enable_auto_updates() {
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        
+        $plugin_file = plugin_basename(WP_VISITOR_STATS_PLUGIN_FILE);
+        $auto_updates = get_site_option('auto_update_plugins', array());
+        
+        // Add to auto-updates if not already there (only in admin)
+        if (!in_array($plugin_file, $auto_updates)) {
+            $auto_updates[] = $plugin_file;
+            update_site_option('auto_update_plugins', $auto_updates);
+        }
     }
     
     /**
