@@ -74,7 +74,7 @@ class WP_Visitor_Stats_Maintenance {
         
         $page_id = wp_insert_post(array(
             'post_title' => $title,
-            'post_content' => self::get_maintenance_content($template),
+            'post_content' => $this->get_maintenance_content($template),
             'post_status' => 'publish',
             'post_type' => 'page',
             'post_name' => 'maintenance'
