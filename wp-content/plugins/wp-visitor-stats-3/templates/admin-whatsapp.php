@@ -55,8 +55,8 @@ $current_count = $this->db->get_unique_visitor_count($period);
                         <input type="text" name="callmebot_apikey" id="callmebot_apikey" value="<?php echo esc_attr($callmebot_apikey); ?>" 
                                placeholder="Your API Key" class="regular-text">
                         <p class="description">
-                            <?php _e('Optional: Get a free API key from', 'wp-visitor-stats'); ?> 
-                            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">CallMeBot</a>. 
+                            <?php _e('Optional: Get a free API key by sending "I allow callmebot to send me messages" to +34 623 78 95 80 on WhatsApp. See instructions below.', 'wp-visitor-stats'); ?>
+                            <br>
                             <?php _e('Leave empty if using webhook instead.', 'wp-visitor-stats'); ?>
                         </p>
                     </td>
@@ -155,8 +155,50 @@ $current_count = $this->db->get_unique_visitor_count($period);
             <li><?php _e('Only one alert per day will be sent (to avoid spam)', 'wp-visitor-stats'); ?></li>
             <li><?php _e('Configure either CallMeBot API key (free) or a webhook URL to send messages', 'wp-visitor-stats'); ?></li>
             <li><?php _e('Phone number must be in international format: +country code + number (e.g., +37120123456)', 'wp-visitor-stats'); ?></li>
-            <li><?php _e('Get a free CallMeBot API key from', 'wp-visitor-stats'); ?> <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">callmebot.com</a></li>
         </ul>
+    </div>
+    
+    <div class="wp-visitor-stats-callmebot-instructions" style="background: #e7f3ff; padding: 20px; border-left: 4px solid #2271b1; margin: 20px 0;">
+        <h3><?php _e('How to Get CallMeBot API Key', 'wp-visitor-stats'); ?></h3>
+        <ol style="margin-left: 20px; line-height: 2;">
+            <li>
+                <strong><?php _e('Step 1:', 'wp-visitor-stats'); ?></strong> 
+                <?php _e('Add CallMeBot to your WhatsApp contacts:', 'wp-visitor-stats'); ?>
+                <br>
+                <code style="background: #fff; padding: 5px 10px; border-radius: 3px; font-size: 16px; font-weight: bold;">+34 623 78 95 80</code>
+            </li>
+            <li>
+                <strong><?php _e('Step 2:', 'wp-visitor-stats'); ?></strong> 
+                <?php _e('Send this exact message to CallMeBot via WhatsApp:', 'wp-visitor-stats'); ?>
+                <br>
+                <code style="background: #fff; padding: 5px 10px; border-radius: 3px; font-size: 14px; display: inline-block; margin-top: 5px;">I allow callmebot to send me messages</code>
+            </li>
+            <li>
+                <strong><?php _e('Step 3:', 'wp-visitor-stats'); ?></strong> 
+                <?php _e('Wait for CallMeBot to reply with your API key (usually within 2 minutes)', 'wp-visitor-stats'); ?>
+            </li>
+            <li>
+                <strong><?php _e('Step 4:', 'wp-visitor-stats'); ?></strong> 
+                <?php _e('Copy the API key and paste it in the "CallMeBot API Key" field above', 'wp-visitor-stats'); ?>
+            </li>
+        </ol>
+        
+        <div style="background: #fff; padding: 15px; margin-top: 15px; border-radius: 5px; border: 1px solid #ddd;">
+            <strong style="color: #d63638;"><?php _e('⚠️ Troubleshooting:', 'wp-visitor-stats'); ?></strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li><?php _e('If you don\'t receive a response within 2 minutes, wait 24 hours and try again', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Make sure you added the correct number: +34 623 78 95 80', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Send the message exactly as shown: "I allow callmebot to send me messages" (case-sensitive)', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('Check your internet connection and WhatsApp connection', 'wp-visitor-stats'); ?></li>
+                <li><?php _e('If CallMeBot doesn\'t respond, you can use a webhook URL instead (see field below)', 'wp-visitor-stats'); ?></li>
+            </ul>
+        </div>
+        
+        <p style="margin-top: 15px;">
+            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank" style="text-decoration: underline;">
+                <?php _e('Visit CallMeBot website for more information', 'wp-visitor-stats'); ?>
+            </a>
+        </p>
     </div>
 </div>
 
