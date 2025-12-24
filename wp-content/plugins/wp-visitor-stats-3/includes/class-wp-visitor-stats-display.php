@@ -83,7 +83,14 @@ class WP_Visitor_Stats_Display {
      * Shortcode to display stats manually
      */
     public function shortcode_display($atts) {
-        return $this->get_stats_html();
+        // For shortcode, check permissions again (might be used in different context)
+        $track_all = get_option('wp_visitor_stats_track_all', false);
+        if ($track_all === true || $track_all === '1' || $track_all === 1) {
+            return $this->get_stats_html();
+        } elseif ($this->db->can_see_stats()) {
+            return $this->get_stats_html();
+        }
+        return '';
     }
     
     /**
