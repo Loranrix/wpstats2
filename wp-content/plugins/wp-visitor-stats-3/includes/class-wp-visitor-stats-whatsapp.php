@@ -70,14 +70,27 @@ class WP_Visitor_Stats_WhatsApp {
         $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
         $threshold = isset($_POST['threshold']) ? intval($_POST['threshold']) : 100;
         $period = isset($_POST['period']) ? sanitize_text_field($_POST['period']) : 'today';
+        $callmebot_apikey = isset($_POST['callmebot_apikey']) ? sanitize_text_field($_POST['callmebot_apikey']) : '';
+        $webhook_url = isset($_POST['whatsapp_webhook']) ? esc_url_raw($_POST['whatsapp_webhook']) : '';
         
-        // Validate phone number (remove spaces, dashes, etc.)
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        // Validate and normalize phone number
+        $phone_normalized = $this->normalize_phone_number($phone);
+        
+        if ($phone_normalized === false && !empty($phone)) {
+            wp_send_json_error(array(
+                'message' => __('Invalid phone number format. Please use international format starting with + (e.g., +37120123456).', 'wp-visitor-stats')
+            ));
+            return;
+        }
+        
+        $phone = $phone_normalized ? $phone_normalized : '';
         
         update_option('wp_visitor_stats_whatsapp_enabled', $enabled);
         update_option('wp_visitor_stats_whatsapp_phone', $phone);
         update_option('wp_visitor_stats_whatsapp_threshold', $threshold);
         update_option('wp_visitor_stats_whatsapp_period', $period);
+        update_option('wp_visitor_stats_callmebot_apikey', $callmebot_apikey);
+        update_option('wp_visitor_stats_whatsapp_webhook', $webhook_url);
         
         wp_send_json_success(array('message' => __('Settings saved!', 'wp-visitor-stats')));
     }
@@ -89,11 +102,21 @@ class WP_Visitor_Stats_WhatsApp {
         check_ajax_referer('wp_visitor_stats_whatsapp', 'nonce');
         
         $phone = isset($_POST['phone']) ? sanitize_text_field($_POST['phone']) : '';
-        $phone = preg_replace('/[^0-9+]/', '', $phone);
         
         if (empty($phone)) {
             wp_send_json_error(array('message' => __('Phone number is required', 'wp-visitor-stats')));
         }
+        
+        // Validate and normalize phone number
+        $phone_normalized = $this->normalize_phone_number($phone);
+        
+        if ($phone_normalized === false) {
+            wp_send_json_error(array(
+                'message' => __('Invalid phone number format. Please use international format starting with + (e.g., +37120123456). The number must start with + followed by country code and number (7-15 digits total).', 'wp-visitor-stats')
+            ));
+        }
+        
+        $phone = $phone_normalized;
         
         $message = __('Test message from WP Visitor Stats plugin. If you receive this, your WhatsApp alerts are configured correctly!', 'wp-visitor-stats');
         
@@ -164,50 +187,99 @@ class WP_Visitor_Stats_WhatsApp {
     }
     
     /**
+     * Validate and normalize phone number to international format
+     */
+    private function normalize_phone_number($phone) {
+        // Remove all non-digit characters except +
+        $phone = preg_replace('/[^0-9+]/', '', $phone);
+        
+        // If phone doesn't start with +, try to add it
+        if (substr($phone, 0, 1) !== '+') {
+            // If it starts with 00, replace with +
+            if (substr($phone, 0, 2) === '00') {
+                $phone = '+' . substr($phone, 2);
+            } else {
+                // Assume it's a local number, add + (user should provide country code)
+                // For now, we'll require the + to be present
+                return false;
+            }
+        }
+        
+        // Remove the + for validation
+        $digits_only = substr($phone, 1);
+        
+        // Validate: should have 7-15 digits (international format)
+        if (strlen($digits_only) < 7 || strlen($digits_only) > 15) {
+            return false;
+        }
+        
+        // Validate: should start with country code (1-3 digits)
+        // Country codes are 1-3 digits, so the first 1-3 digits should be the country code
+        if (!preg_match('/^\+[1-9]\d{6,14}$/', $phone)) {
+            return false;
+        }
+        
+        return $phone;
+    }
+    
+    /**
      * Send WhatsApp message using free API
      * Uses multiple free services as fallback
      */
     private function send_whatsapp_message($phone, $message) {
-        // Remove + from phone if present for some APIs
-        $phone_clean = ltrim($phone, '+');
+        // Validate and normalize phone number
+        $normalized_phone = $this->normalize_phone_number($phone);
         
-        // Try CallMeBot API (free, no registration needed)
-        $callmebot_url = sprintf(
-            'https://api.callmebot.com/whatsapp.php?phone=%s&text=%s&apikey=',
-            urlencode($phone_clean),
-            urlencode($message)
-        );
+        if ($normalized_phone === false) {
+            return array(
+                'success' => false,
+                'error' => __('Invalid phone number format. Please use international format starting with + (e.g., +37120123456). The number must start with + followed by country code and number (7-15 digits total).', 'wp-visitor-stats')
+            );
+        }
         
-        $response = wp_remote_get($callmebot_url, array(
-            'timeout' => 10,
-            'sslverify' => false
-        ));
+        // Remove + from phone for some APIs
+        $phone_clean = ltrim($normalized_phone, '+');
         
-        if (!is_wp_error($response)) {
-            $body = wp_remote_retrieve_body($response);
+        // Try CallMeBot API (free, but requires API key for WhatsApp)
+        // Note: CallMeBot WhatsApp requires an API key from their website
+        $callmebot_apikey = get_option('wp_visitor_stats_callmebot_apikey', '');
+        
+        if (!empty($callmebot_apikey)) {
+            $callmebot_url = sprintf(
+                'https://api.callmebot.com/whatsapp.php?phone=%s&text=%s&apikey=%s',
+                urlencode($phone_clean),
+                urlencode($message),
+                urlencode($callmebot_apikey)
+            );
             
-            // CallMeBot returns "OK" on success
-            if (strpos($body, 'OK') !== false || strpos($body, 'Message sent') !== false) {
-                return array('success' => true);
+            $response = wp_remote_get($callmebot_url, array(
+                'timeout' => 10,
+                'sslverify' => false
+            ));
+            
+            if (!is_wp_error($response)) {
+                $body = wp_remote_retrieve_body($response);
+                $status_code = wp_remote_retrieve_response_code($response);
+                
+                // CallMeBot returns "OK" on success
+                if ($status_code === 200 && (strpos($body, 'OK') !== false || strpos($body, 'Message sent') !== false || stripos($body, 'success') !== false)) {
+                    return array('success' => true);
+                }
+                
+                // Log error for debugging
+                error_log('WP Visitor Stats - CallMeBot error: ' . $body);
+            } else {
+                error_log('WP Visitor Stats - CallMeBot request error: ' . $response->get_error_message());
             }
         }
         
-        // Fallback: Try alternative method using WhatsApp Web API simulation
-        // Note: This requires the phone number to be in international format without +
-        $alternative_url = sprintf(
-            'https://wa.me/%s?text=%s',
-            urlencode($phone),
-            urlencode($message)
-        );
-        
-        // For automatic sending, we'll use a webhook service
-        // Try using a notification service that supports WhatsApp
+        // Try using a webhook service if configured
         $webhook_url = get_option('wp_visitor_stats_whatsapp_webhook', '');
         
         if (!empty($webhook_url)) {
             $webhook_response = wp_remote_post($webhook_url, array(
                 'body' => json_encode(array(
-                    'phone' => $phone,
+                    'phone' => $normalized_phone,
                     'message' => $message
                 )),
                 'headers' => array('Content-Type' => 'application/json'),
@@ -215,13 +287,27 @@ class WP_Visitor_Stats_WhatsApp {
             ));
             
             if (!is_wp_error($webhook_response)) {
-                return array('success' => true);
+                $status_code = wp_remote_retrieve_response_code($webhook_response);
+                if ($status_code >= 200 && $status_code < 300) {
+                    return array('success' => true);
+                }
             }
+        }
+        
+        // If no API key is configured, provide helpful error message
+        if (empty($callmebot_apikey) && empty($webhook_url)) {
+            return array(
+                'success' => false,
+                'error' => __('WhatsApp API not configured. Please configure either CallMeBot API key or a webhook URL in the plugin settings. For CallMeBot, visit https://www.callmebot.com/blog/free-api-whatsapp-messages/ to get your free API key.', 'wp-visitor-stats')
+            );
         }
         
         return array(
             'success' => false,
-            'error' => __('Failed to send WhatsApp message. Please check your phone number format (use international format: +1234567890) and try again.', 'wp-visitor-stats')
+            'error' => sprintf(
+                __('Failed to send WhatsApp message to %s. Please verify: 1) Phone number is in international format (+country code + number), 2) API key/webhook is correctly configured, 3) Your phone number is registered with WhatsApp.', 'wp-visitor-stats'),
+                esc_html($normalized_phone)
+            )
         );
     }
 }

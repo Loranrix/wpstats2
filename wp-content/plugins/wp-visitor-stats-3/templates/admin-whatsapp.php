@@ -39,9 +39,39 @@ $current_count = $this->db->get_unique_visitor_count($period);
                     </th>
                     <td>
                         <input type="text" name="phone" id="whatsapp_phone" value="<?php echo esc_attr($phone); ?>" 
-                               placeholder="+1234567890" class="regular-text">
+                               placeholder="+37120123456" class="regular-text">
                         <p class="description">
-                            <?php _e('Enter your WhatsApp number in international format (e.g., +1234567890). Include country code without spaces or dashes.', 'wp-visitor-stats'); ?>
+                            <?php _e('Enter your WhatsApp number in international format (e.g., +37120123456). Must start with + followed by country code and number (7-15 digits total). No spaces or dashes.', 'wp-visitor-stats'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="callmebot_apikey"><?php _e('CallMeBot API Key', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <?php $callmebot_apikey = get_option('wp_visitor_stats_callmebot_apikey', ''); ?>
+                        <input type="text" name="callmebot_apikey" id="callmebot_apikey" value="<?php echo esc_attr($callmebot_apikey); ?>" 
+                               placeholder="Your API Key" class="regular-text">
+                        <p class="description">
+                            <?php _e('Optional: Get a free API key from', 'wp-visitor-stats'); ?> 
+                            <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">CallMeBot</a>. 
+                            <?php _e('Leave empty if using webhook instead.', 'wp-visitor-stats'); ?>
+                        </p>
+                    </td>
+                </tr>
+                
+                <tr>
+                    <th scope="row">
+                        <label for="whatsapp_webhook"><?php _e('Webhook URL', 'wp-visitor-stats'); ?></label>
+                    </th>
+                    <td>
+                        <?php $webhook_url = get_option('wp_visitor_stats_whatsapp_webhook', ''); ?>
+                        <input type="url" name="whatsapp_webhook" id="whatsapp_webhook" value="<?php echo esc_attr($webhook_url); ?>" 
+                               placeholder="https://your-webhook-url.com/whatsapp" class="regular-text">
+                        <p class="description">
+                            <?php _e('Optional: Alternative to CallMeBot. Provide a webhook URL that accepts POST requests with phone and message fields.', 'wp-visitor-stats'); ?>
                         </p>
                     </td>
                 </tr>
@@ -123,8 +153,9 @@ $current_count = $this->db->get_unique_visitor_count($period);
             <li><?php _e('Alerts are checked daily automatically', 'wp-visitor-stats'); ?></li>
             <li><?php _e('You will receive a WhatsApp message when the threshold is reached', 'wp-visitor-stats'); ?></li>
             <li><?php _e('Only one alert per day will be sent (to avoid spam)', 'wp-visitor-stats'); ?></li>
-            <li><?php _e('The service uses free APIs (CallMeBot) - no registration required', 'wp-visitor-stats'); ?></li>
-            <li><?php _e('Make sure your phone number is in international format (e.g., +1234567890)', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('Configure either CallMeBot API key (free) or a webhook URL to send messages', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('Phone number must be in international format: +country code + number (e.g., +37120123456)', 'wp-visitor-stats'); ?></li>
+            <li><?php _e('Get a free CallMeBot API key from', 'wp-visitor-stats'); ?> <a href="https://www.callmebot.com/blog/free-api-whatsapp-messages/" target="_blank">callmebot.com</a></li>
         </ul>
     </div>
 </div>
@@ -140,7 +171,9 @@ jQuery(document).ready(function($) {
             enabled: $('#whatsapp_enabled').is(':checked') ? 1 : 0,
             phone: $('#whatsapp_phone').val(),
             threshold: $('#whatsapp_threshold').val(),
-            period: $('#whatsapp_period').val()
+            period: $('#whatsapp_period').val(),
+            callmebot_apikey: $('#callmebot_apikey').val(),
+            whatsapp_webhook: $('#whatsapp_webhook').val()
         };
         
         $.ajax({
