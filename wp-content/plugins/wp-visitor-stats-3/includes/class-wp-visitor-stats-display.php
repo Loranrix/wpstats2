@@ -87,20 +87,34 @@ class WP_Visitor_Stats_Display {
         $format = get_option('wp_visitor_stats_format', 'compact');
         $color_scheme = get_option('wp_visitor_stats_color', 'blue');
         
-        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/styles.php';
+        $styles_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/styles.php';
+        if (file_exists($styles_file)) {
+            include $styles_file;
+        }
     }
     
     /**
      * Get stats data
      */
     private function get_stats_data() {
-        return array(
-            'today' => $this->db->get_visitor_count('today'),
-            'week' => $this->db->get_visitor_count('week'),
-            'month' => $this->db->get_visitor_count('month'),
-            'year' => $this->db->get_visitor_count('year'),
-            'online' => $this->db->get_online_count()
-        );
+        try {
+            return array(
+                'today' => (int) $this->db->get_visitor_count('today'),
+                'week' => (int) $this->db->get_visitor_count('week'),
+                'month' => (int) $this->db->get_visitor_count('month'),
+                'year' => (int) $this->db->get_visitor_count('year'),
+                'online' => (int) $this->db->get_online_count()
+            );
+        } catch (Exception $e) {
+            // Return default values on error
+            return array(
+                'today' => 0,
+                'week' => 0,
+                'month' => 0,
+                'year' => 0,
+                'online' => 0
+            );
+        }
     }
     
     /**
@@ -150,13 +164,39 @@ class WP_Visitor_Stats_Display {
      * Get stats HTML
      */
     private function get_stats_html() {
-        $stats = $this->get_stats_data();
-        $format = get_option('wp_visitor_stats_format', 'compact');
-        $color_scheme = get_option('wp_visitor_stats_color', 'blue');
-        
-        ob_start();
-        include WP_VISITOR_STATS_PLUGIN_DIR . 'templates/display-' . $format . '.php';
-        return ob_get_clean();
+        try {
+            $stats = $this->get_stats_data();
+            $format = get_option('wp_visitor_stats_format', 'compact');
+            $color_scheme = get_option('wp_visitor_stats_color', 'blue');
+            
+            // Ensure stats array has all required keys
+            $stats = wp_parse_args($stats, array(
+                'today' => 0,
+                'week' => 0,
+                'month' => 0,
+                'year' => 0,
+                'online' => 0
+            ));
+            
+            $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/display-' . $format . '.php';
+            
+            if (!file_exists($template_file)) {
+                $format = 'compact';
+                $template_file = WP_VISITOR_STATS_PLUGIN_DIR . 'templates/display-' . $format . '.php';
+            }
+            
+            ob_start();
+            if (file_exists($template_file)) {
+                include $template_file;
+            } else {
+                // Fallback simple display
+                echo '<div class="wp-visitor-stats"><span>Today: ' . number_format($stats['today']) . ' | Online: ' . number_format($stats['online']) . '</span></div>';
+            }
+            return ob_get_clean();
+        } catch (Exception $e) {
+            // Return empty string on error to prevent breaking the page
+            return '';
+        }
     }
 }
 
