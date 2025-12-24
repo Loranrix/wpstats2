@@ -72,9 +72,8 @@ class WP_Visitor_Stats_Display {
         }
         
         // Always add to footer as backup if other methods fail (with lower priority)
-        if ($position !== 'footer') {
-            add_action('wp_footer', array($this, 'output_stats_footer_backup'), 999);
-        }
+        // This ensures stats are always visible somewhere on the page
+        add_action('wp_footer', array($this, 'output_stats_footer_backup'), 999);
         
         // Also add to wp_head as last resort (will appear at top of page) - only if track_all is enabled
         if ($track_all === true || $track_all === '1' || $track_all === 1) {
@@ -207,11 +206,12 @@ class WP_Visitor_Stats_Display {
      */
     public function output_stats_footer_backup() {
         static $displayed = false;
-        // Only display if not already displayed by other methods
-        if (!$displayed) {
+        // Only display if not already displayed by other methods and not in admin
+        if (!$displayed && !is_admin()) {
             $html = $this->get_stats_html();
             if (!empty($html)) {
-                echo $html;
+                // Wrap in a container that won't interfere with page layout
+                echo '<div style="position: fixed; bottom: 10px; right: 10px; z-index: 999998; max-width: 300px;">' . $html . '</div>';
                 $displayed = true;
             }
         }
